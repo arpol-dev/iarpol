@@ -1,0 +1,34 @@
+#!/bin/sh
+# Fond d'écran IArPol : attend que https://iarpol.arpol.fr réponde (VPN Netbird monté), puis lance
+# Hidamari en arrière-plan (mode page web, config : ~/.var/app/io.github.jeffshee.Hidamari/config/hidamari/).
+# Hidamari ne recharge pas une page dont le premier chargement a échoué, d'où cette attente.
+#
+# Cadence selon le mode graphique du démarrage (/run/gpu-power-mode, cf. gpu-power-mode) :
+#   nvidia    → 60 i/s, animations natives ;
+#   on-demand → 6 i/s, mode économe (chaque image est recopiée de la carte AMD vers la NVIDIA).
+if [ "$(cat /run/gpu-power-mode 2>/dev/null)" = nvidia ]; then FPS=60; else FPS=6; fi
+URL="https://iarpol.arpol.fr/?wallpaper&fps=$FPS"
+
+for i in $(seq 1 120); do
+  curl -fsS -o /dev/null --max-time 3 https://iarpol.arpol.fr/ && break
+  sleep 5
+done
+
+python3 - "$URL" <<'PY'
+import json, os, sys
+p = os.path.expanduser("~/.var/app/io.github.jeffshee.Hidamari/config/hidamari/config.json")
+c = json.load(open(p))
+for k in c["data_source"]:
+    c["data_source"][k] = sys.argv[1]
+json.dump(c, open(p, "w"), indent=3)
+PY
+
+# Une seule instance : « flatpak kill <appli> » n'en arrête qu'une, on les arrête une par une.
+for inst in $(flatpak ps --columns=instance,application | awk '/Hidamari/ {print $1}'); do
+  flatpak kill "$inst" 2>/dev/null
+done
+
+# Sans compositing accéléré, WebKit ne repeint que les zones modifiées : environ -15 points de CPU
+# à 60 i/s sous Wayland/NVIDIA (mesuré le 2026-10-24). Le rendu sur la NVIDIA reste impossible
+# (page vide, défaut connu WebKit/NVIDIA) : Hidamari garde le nœud de rendu AMD.
+exec /usr/bin/flatpak run --env=WEBKIT_DISABLE_COMPOSITING_MODE=1 --command=hidamari io.github.jeffshee.Hidamari -b

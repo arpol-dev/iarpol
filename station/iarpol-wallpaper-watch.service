@@ -1,0 +1,11 @@
+[Unit]
+Description=IArPol — relance le fond d'écran quand les écrans changent (défaut de Hidamari)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/iarpol-wallpaper-watch
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

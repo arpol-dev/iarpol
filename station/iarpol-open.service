@@ -1,0 +1,11 @@
+[Unit]
+Description=IArPol — ouvre les sessions OpenCode dans une vraie fenêtre (appelé par le fond d'écran)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/iarpol-open
+Restart=on-failure
+
+[Install]
+WantedBy=graphical-session.target

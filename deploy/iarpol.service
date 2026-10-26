@@ -1,0 +1,14 @@
+[Unit]
+Description=IArPol — tableau de bord des sessions IA (derrière nginx, https://iarpol.arpol.fr)
+After=network-online.target
+
+[Service]
+# Exposé uniquement via nginx (TLS + restriction au réseau Netbird), voir README.
+Environment=IARPOL_HOST=127.0.0.1
+Environment=IARPOL_PORT=4880
+ExecStart=/usr/bin/node %h/dev/iarpol/server/src/index.js
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=default.target

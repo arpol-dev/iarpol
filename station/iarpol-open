@@ -1,0 +1,75 @@
+#!/usr/bin/env python3
+"""Ouvre une session OpenCode dans une vraie fenêtre, à la demande du fond d'écran IArPol.
+
+Le moteur de Hidamari (WebKitGTK) ne sait ouvrir ni fenêtre ni application : le bouton « Ouvrir »
+de la fenêtre de session appelle ce service local (127.0.0.1 uniquement), qui lance l'interface web
+d'OpenCode sur la session dans une fenêtre d'application Chrome (sans onglets ni barre d'adresse).
+
+N'accepte que des adresses de session du serveur OpenCode configuré : rien d'autre ne peut être
+ouvert par ce biais. OpenCode Desktop ne sait pas ouvrir une session depuis l'extérieur (lien
+profond demandé, refusé : anomalyco/opencode#6232), d'où l'interface web, qui est la même.
+"""
+import os
+import re
+import struct
+import subprocess
+import sys
+import zlib
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
+
+PORT = int(os.environ.get('IARPOL_OPEN_PORT', '4891'))
+OPENCODE = os.environ.get('OPENCODE_WEB', 'http://100.78.13.93:4096').rstrip('/')
+BROWSER = os.environ.get('IARPOL_OPEN_BROWSER', 'google-chrome')
+ORIGIN = os.environ.get('IARPOL_OPEN_ORIGIN', 'https://iarpol.arpol.fr')
+SESSION_URL = re.compile(re.escape(OPENCODE) + r'/server/[A-Za-z0-9+/=_-]{8,200}/session/ses_[A-Za-z0-9]{10,64}')
+
+
+def pixel():
+    """PNG transparent de 1×1 : la réponse est aussi utilisable comme image (repli sans fetch)."""
+    def chunk(kind, data):
+        return struct.pack('>I', len(data)) + kind + data + struct.pack('>I', zlib.crc32(kind + data))
+    return (b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 1, 1, 8, 6, 0, 0, 0))
+            + chunk(b'IDAT', zlib.compress(b'\x00\x00\x00\x00\x00')) + chunk(b'IEND', b''))
+
+
+PIXEL = pixel()
+
+
+class Handler(BaseHTTPRequestHandler):
+    def reply(self, status, body=b'', content_type=None):
+        self.send_response(status)
+        # Appel depuis https://iarpol.arpol.fr : CORS, et accès à la machine locale (Private /
+        # Local Network Access de Chrome).
+        self.send_header('Access-Control-Allow-Origin', ORIGIN)
+        self.send_header('Access-Control-Allow-Private-Network', 'true')
+        self.send_header('Cache-Control', 'no-store')
+        if content_type:
+            self.send_header('Content-Type', content_type)
+        self.send_header('Content-Length', str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.reply(204)
+
+    def do_GET(self):
+        url = urlparse(self.path)
+        if url.path != '/open':
+            return self.reply(404)
+        origin = self.headers.get('Origin')
+        if origin and origin != ORIGIN:
+            return self.reply(403)
+        target = parse_qs(url.query).get('url', [''])[0]
+        if not SESSION_URL.fullmatch(target):
+            return self.reply(400)
+        subprocess.Popen([BROWSER, f'--app={target}'], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                         stderr=subprocess.DEVNULL, start_new_session=True)
+        self.reply(200, PIXEL, 'image/png')
+
+    def log_message(self, fmt, *args):
+        sys.stderr.write('iarpol-open: ' + fmt % args + '\n')
+
+
+if __name__ == '__main__':
+    ThreadingHTTPServer(('127.0.0.1', PORT), Handler).serve_forever()

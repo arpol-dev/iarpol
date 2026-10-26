@@ -1,0 +1,41 @@
+#!/usr/bin/env python3
+"""Relance le fond d'écran IArPol quand la configuration des écrans change.
+
+Hidamari crée une fenêtre de fond d'écran par écran, mais quand un écran disparaît (capot du portable
+refermé, écran débranché), il l'oublie sans fermer sa fenêtre : celle-ci reste affichée par-dessus
+le fond d'écran (vu le 2026-10-25 : fenêtre 1920×1080 de l'écran du portable restée sur l'écran
+externe). On écoute donc le signal MonitorsChanged de GNOME (X11 comme Wayland) et on relance le
+fond d'écran une fois la rafale d'événements passée ; le lanceur arrête les anciennes instances.
+"""
+import os
+import subprocess
+
+import gi
+
+gi.require_version('Gio', '2.0')
+from gi.repository import Gio, GLib  # noqa: E402
+
+DEBOUNCE_S = 5
+LAUNCHER = os.path.expanduser('~/.local/bin/iarpol-wallpaper')
+pending = None
+
+
+def relaunch():
+    global pending
+    pending = None
+    subprocess.Popen([LAUNCHER], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, start_new_session=True)
+    return GLib.SOURCE_REMOVE
+
+
+def on_monitors_changed(*_):
+    global pending
+    if pending:
+        GLib.source_remove(pending)
+    pending = GLib.timeout_add_seconds(DEBOUNCE_S, relaunch)
+
+
+bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+bus.signal_subscribe('org.gnome.Mutter.DisplayConfig', 'org.gnome.Mutter.DisplayConfig', 'MonitorsChanged',
+                     '/org/gnome/Mutter/DisplayConfig', None, Gio.DBusSignalFlags.NONE, on_monitors_changed)
+GLib.MainLoop().run()
