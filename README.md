@@ -20,9 +20,10 @@ dans la fenêtre de la session.
 
 ### Signaux (`web/src/Network.tsx`)
 
-Le signal part **du cœur vers la session** qui travaille, le long d'un axone courbe (ligne de champ :
-il quitte perpendiculairement la sphère, en un point décalé de la direction de la session, puis
-s'infléchit vers elle).
+Le signal part **du cœur vers la session** qui travaille, le long d'un axone à peine courbe (ligne de
+champ : il quitte perpendiculairement la sphère, en un point décalé de ±7° au plus de la direction
+de la session, puis s'infléchit vers elle). La courbure reste de quelques % de la longueur, jamais
+nulle, pour éviter des tracés rectilignes sans dessiner d'arcs prononcés.
 
 - **Charge** : sur la surface d'une sphère invisible autour du logo (rayon 62 × échelle du cœur),
   deux fronts convergent vers le point d'émission, avec crépitement et étincelles, puis une lueur s'y

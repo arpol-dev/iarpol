@@ -124,6 +124,15 @@ export function layout(sessions: Session[], width: number, height: number, inset
   return { cx, cy, rx, ry, orbit, nodes }
 }
 
+/**
+ * Courbure d'un axone, en fraction de sa longueur : à peine visible (de 3 à 7 %), jamais nulle pour
+ * qu'aucun tracé ne soit parfaitement rectiligne, et de sens tiré de l'id.
+ */
+function curvature(id: string, salt: number): number {
+  const h = hash(id, salt)
+  return (h < 0.5 ? -1 : 1) * (0.03 + 0.08 * Math.abs(h - 0.5))
+}
+
 export interface Axon {
   /** Tracé de l'axone, du point d'émission vers la session. */
   d: string
@@ -135,28 +144,29 @@ export interface Axon {
 }
 
 /**
- * Axone courbe d'une session, à la manière d'une ligne de champ : il quitte la sphère invisible qui
- * entoure le cœur perpendiculairement à sa surface, en un point décalé de la direction de la
- * session, puis s'infléchit vers elle. Un sous-agent est relié à son parent par une courbe légère.
+ * Axone à peine courbe d'une session, à la manière d'une ligne de champ : il quitte la sphère
+ * invisible qui entoure le cœur perpendiculairement à sa surface, en un point légèrement décalé de
+ * la direction de la session (±7°), puis s'infléchit vers elle. Un sous-agent est relié à son
+ * parent par une courbe tout aussi légère.
  */
 export function axon(node: Placed, cx: number, cy: number, sphere: number): Axon {
   const { session, x, y } = node
   if (node.satellite) {
     const mx = (node.fromX + x) / 2
     const my = (node.fromY + y) / 2
-    const bend = (hash(session.id, 1) - 0.5) * 0.6
+    const bend = curvature(session.id, 1)
     const qx = mx - (y - node.fromY) * bend
     const qy = my + (x - node.fromX) * bend
     return { d: `M${node.fromX},${node.fromY} Q${qx},${qy} ${x},${y}`, sx: node.fromX, sy: node.fromY, angle: 0 }
   }
   const toward = Math.atan2(y - cy, x - cx)
-  const angle = toward + (hash(session.id, 2) - 0.5) * 0.9
+  const angle = toward + (hash(session.id, 2) - 0.5) * 0.24
   const sx = cx + sphere * Math.cos(angle)
   const sy = cy + sphere * Math.sin(angle)
   const length = Math.hypot(x - sx, y - sy)
   const ux = (x - sx) / length
   const uy = (y - sy) / length
-  const bend = (hash(session.id, 3) - 0.5) * 0.5 * length
+  const bend = curvature(session.id, 3) * length
   const c1x = sx + Math.cos(angle) * length * 0.42
   const c1y = sy + Math.sin(angle) * length * 0.42
   const c2x = x - ux * length * 0.32 - uy * bend
