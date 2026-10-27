@@ -254,7 +254,7 @@ export interface Axon {
  * la direction de la session (±7°), puis s'infléchit vers elle. Un sous-agent est relié à son
  * parent par une courbe tout aussi légère.
  */
-export function axon(node: Placed, cx: number, cy: number, sphere: number): Axon {
+export function axon(node: Placed, cx: number, cy: number, sphere: number, inset = 1): Axon {
   const { session, x, y } = node
   if (node.satellite) {
     const mx = (node.fromX + x) / 2
@@ -266,8 +266,9 @@ export function axon(node: Placed, cx: number, cy: number, sphere: number): Axon
   }
   const toward = Math.atan2(y - cy, x - cx)
   const angle = toward + (hash(session.id, 2) - 0.5) * 0.24
-  const sx = cx + sphere * Math.cos(angle)
-  const sy = cy + sphere * Math.sin(angle)
+  // `inset` < 1 : point d'émission tourné vers l'observateur, projeté en deçà du contour de la sphère.
+  const sx = cx + sphere * inset * Math.cos(angle)
+  const sy = cy + sphere * inset * Math.sin(angle)
   const length = Math.hypot(x - sx, y - sy)
   const ux = (x - sx) / length
   const uy = (y - sy) / length

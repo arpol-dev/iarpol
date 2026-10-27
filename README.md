@@ -25,9 +25,13 @@ champ : il quitte perpendiculairement la sphère, en un point décalé de ±7° 
 de la session, puis s'infléchit vers elle). La courbure reste de quelques % de la longueur, jamais
 nulle, pour éviter des tracés rectilignes sans dessiner d'arcs prononcés.
 
-- **Charge** : sur la surface d'une sphère invisible autour du logo (rayon 62 × échelle du cœur),
-  deux fronts convergent vers le point d'émission, avec crépitement et étincelles, puis une lueur s'y
-  concentre.
+- **Charge**, vue en 3D : sur une sphère invisible autour du logo (rayon 62 × échelle du cœur), le
+  point d'émission est un pôle tourné de 25° vers l'observateur. Des anneaux de latitude (des
+  ellipses en perspective) se resserrent sur lui, la charge parcourt des méridiens qui convergent,
+  des étincelles crépitent sur la face avant (plus grosses quand elles sont plus proches), puis une
+  lueur se concentre au pôle. Projection orthographique dans `Network.tsx` (`onSphere`) ; ce qui
+  passe derrière la sphère est ramené sur son contour ; la zone chargée s'étend à 38° du pôle pour
+  ne pas recouvrir le logo.
 - **Envoi** : la charge se libère en comète le long de l'axone ; éclair à l'arrivée sur la session.
 - **Désynchronisé** : période (3 à 5,6 s) et phase tirées de l'id de chaque session.
 - Animé en SMIL (figé par `pauseAnimations()` en pause). En fond d'écran économe : pointillés qui

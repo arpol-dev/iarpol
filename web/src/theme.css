@@ -63,11 +63,12 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 .ring { fill: none; stroke-width: 1; opacity: 0; }
 
 /* Signal du cœur vers une session qui travaille (Network.tsx) : charge électrostatique sur la sphère
-   invisible autour du logo, puis comète le long de l'axone, éclair à l'arrivée. */
+   invisible autour du logo, vue en 3D (anneaux de latitude, méridiens, étincelles), puis comète le
+   long de l'axone, éclair à l'arrivée. */
 .signal { pointer-events: none; }
-.charge-front, .charge-crackle { fill: none; stroke: var(--cyan); stroke-linecap: round; opacity: 0; }
+.charge-front, .charge-ring { fill: none; stroke-linecap: round; stroke-linejoin: round; opacity: 0; }
 .charge-front { stroke: #9cecff; filter: drop-shadow(0 0 3px rgba(0, 212, 255, 0.9)); }
-.charge-crackle { stroke: rgba(160, 236, 255, 0.9); }
+.charge-ring { stroke: rgba(120, 225, 255, 0.85); filter: drop-shadow(0 0 2px rgba(0, 212, 255, 0.7)); }
 .spark { fill: #e8fbff; filter: drop-shadow(0 0 3px var(--cyan)); }
 .charge-glow { fill: url(#gCharge); }
 .comet-glow, .comet-core { fill: none; stroke-linecap: round; }

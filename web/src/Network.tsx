@@ -11,8 +11,64 @@ const STATUS_HINT = {
 
 /** Rayon de la sphère invisible autour du logo, sur laquelle les signaux se chargent (× échelle du cœur). */
 const SPHERE = 62
-/** Demi-ouverture de la zone de la sphère qui se charge autour du point d'émission (radians). */
-const CHARGE_SPREAD = 0.42
+/**
+ * Inclinaison du pôle d'émission vers l'observateur : la charge se rassemble sur la face avant de la
+ * sphère, ce qui donne à voir sa courbure (anneaux en ellipses, méridiens qui convergent).
+ */
+const POLE_TILT = (25 * Math.PI) / 180
+/** Étendue de la zone qui se charge autour du pôle : distance angulaire sur la sphère (radians). */
+const CHARGE_REACH = 0.66
+const MERIDIANS = 7
+const RINGS = 3
+const RING_POINTS = 28
+const MERIDIAN_POINTS = 12
+const SPARKS = 5
+
+type Vec = [number, number, number]
+
+/** Repère de la sphère pour un pôle vu dans la direction `angle` : pôle `d` et deux axes `t`, `u` qui l'entourent. */
+function poleFrame(angle: number) {
+  const cg = Math.cos(POLE_TILT)
+  const sg = Math.sin(POLE_TILT)
+  const c = Math.cos(angle)
+  const s = Math.sin(angle)
+  return { d: [cg * c, cg * s, sg] as Vec, t: [-s, c, 0] as Vec, u: [-sg * c, -sg * s, cg] as Vec }
+}
+type PoleFrame = ReturnType<typeof poleFrame>
+
+/**
+ * Projection orthographique d'un point de la sphère, à la distance angulaire `a` du pôle et à
+ * l'azimut `b`. Ce qui passe derrière la sphère est ramené sur son contour. `z` : profondeur (1 face
+ * à l'observateur, 0 sur le contour).
+ */
+function onSphere(f: PoleFrame, a: number, b: number, cx: number, cy: number, r: number): { x: number; y: number; z: number } {
+  const ca = Math.cos(a)
+  const sa = Math.sin(a)
+  const cb = Math.cos(b)
+  const sb = Math.sin(b)
+  let [x, y, z] = [0, 1, 2].map((k) => ca * f.d[k] + sa * (cb * f.t[k] + sb * f.u[k]))
+  if (z < 0) {
+    const n = Math.hypot(x, y) || 1
+    x /= n
+    y /= n
+    z = 0
+  }
+  return { x: cx + r * x, y: cy + r * y, z }
+}
+
+const pt = (p: { x: number; y: number }) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`
+
+/** Anneau de latitude (cercle à distance angulaire `a` du pôle), vu en perspective. */
+function ringPath(f: PoleFrame, a: number, cx: number, cy: number, r: number): string {
+  const points = Array.from({ length: RING_POINTS }, (_, i) => pt(onSphere(f, a, (i / RING_POINTS) * 2 * Math.PI, cx, cy, r)))
+  return `M${points.join(' L')} Z`
+}
+
+/** Méridien d'azimut `b`, tracé du bord de la zone chargée jusqu'au pôle. */
+function meridianPath(f: PoleFrame, b: number, cx: number, cy: number, r: number): string {
+  const points = Array.from({ length: MERIDIAN_POINTS }, (_, i) => pt(onSphere(f, CHARGE_REACH * (1 - i / (MERIDIAN_POINTS - 1)), b, cx, cy, r)))
+  return `M${points.join(' L')}`
+}
 
 /**
  * Durées d'un cycle de signal, propres à chaque session (tirées de son id) : les signaux des
@@ -29,11 +85,6 @@ export function signalTiming(id: string, satellite: boolean) {
   }
 }
 
-function arc(cx: number, cy: number, r: number, from: number, to: number): string {
-  const p = (a: number) => `${(cx + r * Math.cos(a)).toFixed(1)},${(cy + r * Math.sin(a)).toFixed(1)}`
-  return `M${p(from)} A${r},${r} 0 0 ${to > from ? 1 : 0} ${p(to)}`
-}
-
 /** Fractions du cycle : SMIL exige des instants strictement croissants. */
 function times(...t: number[]): string {
   return t.map((v) => v.toFixed(3)).join(';')
@@ -41,63 +92,78 @@ function times(...t: number[]): string {
 
 /**
  * Signal qui part du cœur vers une session qui travaille. Une charge électrostatique se rassemble
- * d'abord sur la surface de la sphère invisible (deux fronts qui convergent, crépitement, étincelles)
- * jusqu'au point d'émission, puis se libère et file le long de l'axone ; la session s'illumine à
- * son arrivée. Pour un sous-agent, le signal part directement de son parent.
+ * d'abord sur la surface de la sphère invisible, vue en 3D : des anneaux de latitude se resserrent
+ * sur le pôle d'émission, des méridiens convergent vers lui, des étincelles crépitent sur la face
+ * avant. Puis la charge se libère et file le long de l'axone ; la session s'illumine à son arrivée.
+ * Pour un sous-agent, le signal part directement de son parent.
  */
 function Signal({ node, a, cx, cy, sphere, scale }: { node: Placed; a: Axon; cx: number; cy: number; sphere: number; scale: number }) {
   const { session, satellite, x, y } = node
   const { period, phase, charged: c, arrived: e } = signalTiming(session.id, satellite)
   const anim = { dur: `${period.toFixed(2)}s`, begin: `${(-phase * period).toFixed(2)}s`, repeatCount: 'indefinite' }
   const travel = { calcMode: 'spline', keySplines: '0 0 1 1; 0.5 0 0.3 1; 0 0 1 1' }
+  const f = poleFrame(a.angle)
+  const turn = hash(session.id, 6) * 2 * Math.PI
 
   return (
     <g className="signal" aria-hidden>
       {!satellite && (
         <g className="charge">
-          {[a.angle - CHARGE_SPREAD, a.angle + CHARGE_SPREAD].map((from, i) => (
-            <path key={i} className="charge-front" d={arc(cx, cy, sphere, from, a.angle)} pathLength={100} strokeDasharray="34 200" strokeWidth={1.6 * scale}>
-              <animate attributeName="stroke-dashoffset" values="34;34;-66;-66" keyTimes={times(0, 0.04, c, 1)} {...anim} />
-              <animate attributeName="opacity" values="0;0.95;0.95;0;0" keyTimes={times(0, 0.06, c - 0.03, c + 0.02, 1)} {...anim} />
-            </path>
-          ))}
-          <path
-            className="charge-crackle"
-            d={arc(cx, cy, sphere, a.angle - CHARGE_SPREAD * 1.15, a.angle + CHARGE_SPREAD * 1.15)}
-            pathLength={100}
-            strokeDasharray="0.8 3.2"
-            strokeWidth={1.2 * scale}
-          >
-            <animate attributeName="stroke-dashoffset" values="0;-24" dur="0.45s" repeatCount="indefinite" />
-            <animate
-              attributeName="opacity"
-              calcMode="discrete"
-              values="0;0.5;0.15;0.7;0.3;0.85;0.4;0"
-              keyTimes={times(0, c * 0.2, c * 0.35, c * 0.5, c * 0.62, c * 0.75, c * 0.9, c + 0.02)}
-              {...anim}
-            />
-          </path>
-          {[
-            '0.15;0.7;0.32;0.55;0.45;0.5',
-            '0.82;0.25;0.62;0.4;0.56;0.5',
-          ].map((points, i) => (
-            <circle key={i} className="spark" r={1.3 * scale} opacity="0">
-              <animateMotion
-                path={arc(cx, cy, sphere, a.angle - CHARGE_SPREAD, a.angle + CHARGE_SPREAD)}
-                calcMode="discrete"
-                keyPoints={points}
-                keyTimes={times(0, c * 0.25, c * 0.45, c * 0.62, c * 0.8, c * 0.93)}
-                {...anim}
-              />
-              <animate
-                attributeName="opacity"
-                calcMode="discrete"
-                values="0;0.9;0;0.8;0.2;0.9;0"
-                keyTimes={times(0, c * 0.25 + i * 0.03, c * 0.38, c * 0.5 + i * 0.04, c * 0.7, c * 0.85, c + 0.01)}
-                {...anim}
-              />
-            </circle>
-          ))}
+          {/* Anneaux de latitude qui se resserrent sur le pôle, l'un après l'autre. */}
+          {Array.from({ length: RINGS }, (_, k) => {
+            const start = 0.03 + k * 0.1
+            const span = c - start
+            const reach = CHARGE_REACH * 0.95
+            const shapes = [1, 1, 0.72, 0.48, 0.27, 0.11, 0.03, 0.03].map((q) => ringPath(f, Math.max(0.03, reach * q), cx, cy, sphere))
+            return (
+              <path key={k} className="charge-ring" d={shapes[0]} strokeWidth={1.1 * scale} opacity="0">
+                <animate
+                  attributeName="d"
+                  values={shapes.join(';')}
+                  keyTimes={times(0, start, start + span * 0.2, start + span * 0.4, start + span * 0.6, start + span * 0.8, c, 1)}
+                  {...anim}
+                />
+                <animate attributeName="opacity" values="0;0;0.8;0.7;0;0" keyTimes={times(0, start, start + 0.04, c - 0.02, c + 0.01, 1)} {...anim} />
+              </path>
+            )
+          })}
+          {/* Méridiens : la charge les parcourt jusqu'au pôle, en léger décalé. */}
+          {Array.from({ length: MERIDIANS }, (_, k) => {
+            const b = turn + (k / MERIDIANS) * 2 * Math.PI
+            const start = 0.02 + 0.12 * hash(session.id, 40 + k)
+            const depth = onSphere(f, 0.6, b, cx, cy, sphere).z
+            return (
+              <path
+                key={k}
+                className="charge-front"
+                d={meridianPath(f, b, cx, cy, sphere)}
+                pathLength={100}
+                strokeDasharray="30 200"
+                strokeWidth={(0.6 + 0.9 * depth) * scale}
+                opacity="0"
+              >
+                <animate attributeName="stroke-dashoffset" values="30;30;-70;-70" keyTimes={times(0, start, c, 1)} {...anim} />
+                <animate attributeName="opacity" values={`0;0;${(0.45 + 0.5 * depth).toFixed(2)};0.9;0;0`} keyTimes={times(0, start, start + 0.03, c - 0.02, c + 0.01, 1)} {...anim} />
+              </path>
+            )
+          })}
+          {/* Étincelles sur la face avant, plus grosses quand elles sont plus proches. */}
+          {Array.from({ length: SPARKS }, (_, k) => {
+            let p = onSphere(f, 0.25 + 0.75 * hash(session.id, 50 + k), hash(session.id, 60 + k) * 2 * Math.PI, cx, cy, sphere)
+            if (p.z < 0.2) p = onSphere(f, 0.25 + 0.5 * hash(session.id, 50 + k), hash(session.id, 60 + k) * 2 * Math.PI + Math.PI, cx, cy, sphere)
+            const o = k * 0.035
+            return (
+              <circle key={k} className="spark" cx={p.x} cy={p.y} r={(0.7 + 0.9 * p.z) * scale} opacity="0">
+                <animate
+                  attributeName="opacity"
+                  calcMode="discrete"
+                  values="0;0.9;0;0.7;0;0.95;0"
+                  keyTimes={times(0, c * 0.18 + o, c * 0.3 + o, c * 0.46 + o, c * 0.6 + o, c * 0.72 + o, c + 0.01)}
+                  {...anim}
+                />
+              </circle>
+            )
+          })}
           <circle className="charge-glow" cx={a.sx} cy={a.sy} r="0">
             <animate attributeName="r" values={`0;0;${5 * scale};${8 * scale};0;0`} keyTimes={times(0, 0.1, c - 0.04, c, c + 0.08, 1)} {...anim} />
             <animate attributeName="opacity" values="0;0;0.9;1;0;0" keyTimes={times(0, 0.1, c - 0.04, c, c + 0.08, 1)} {...anim} />
@@ -146,7 +212,8 @@ function Neuron({
   onSelect: (id: string) => void
 }) {
   const { session: s, x, y, satellite } = node
-  const a = axon(node, cx, cy, sphere)
+  // Le signal part du pôle d'émission, tourné vers l'observateur : projeté un peu en deçà du contour.
+  const a = axon(node, cx, cy, sphere, Math.cos(POLE_TILT))
   const scale = (satellite ? 0.55 : 1) * ui
   const running = s.status === 'running'
   const timing = signalTiming(s.id, satellite)
