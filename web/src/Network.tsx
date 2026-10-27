@@ -18,11 +18,10 @@ const SPHERE = 62
 const POLE_TILT = (25 * Math.PI) / 180
 /** Étendue de la zone qui se charge autour du pôle : distance angulaire sur la sphère (radians). */
 const CHARGE_REACH = 0.66
-const MERIDIANS = 7
-const RINGS = 3
-const RING_POINTS = 28
-const MERIDIAN_POINTS = 12
-const SPARKS = 5
+/** Vagues de charge : de plus en plus serrées à mesure que la charge se concentre sur le pôle. */
+const WAVE_STARTS = [0, 0.26, 0.46, 0.61, 0.73, 0.82, 0.89]
+const WAVE_POINTS = 36
+const SPARKS = 3
 
 type Vec = [number, number, number]
 
@@ -58,16 +57,17 @@ function onSphere(f: PoleFrame, a: number, b: number, cx: number, cy: number, r:
 
 const pt = (p: { x: number; y: number }) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`
 
-/** Anneau de latitude (cercle à distance angulaire `a` du pôle), vu en perspective. */
-function ringPath(f: PoleFrame, a: number, cx: number, cy: number, r: number): string {
-  const points = Array.from({ length: RING_POINTS }, (_, i) => pt(onSphere(f, a, (i / RING_POINTS) * 2 * Math.PI, cx, cy, r)))
+/**
+ * Vague de charge : anneau irrégulier autour du pôle, à la distance angulaire moyenne `a`, vu en
+ * perspective. Son ondulation (`wobble`, deux harmoniques de phases propres) évite le cercle parfait.
+ */
+function wavePath(f: PoleFrame, a: number, wobble: number, phase: number, cx: number, cy: number, r: number): string {
+  const points = Array.from({ length: WAVE_POINTS }, (_, i) => {
+    const b = (i / WAVE_POINTS) * 2 * Math.PI
+    const k = 1 + wobble * (0.6 * Math.sin(3 * b + phase) + 0.4 * Math.sin(5 * b - 2 * phase))
+    return pt(onSphere(f, Math.max(0.02, a * k), b, cx, cy, r))
+  })
   return `M${points.join(' L')} Z`
-}
-
-/** Méridien d'azimut `b`, tracé du bord de la zone chargée jusqu'au pôle. */
-function meridianPath(f: PoleFrame, b: number, cx: number, cy: number, r: number): string {
-  const points = Array.from({ length: MERIDIAN_POINTS }, (_, i) => pt(onSphere(f, CHARGE_REACH * (1 - i / (MERIDIAN_POINTS - 1)), b, cx, cy, r)))
-  return `M${points.join(' L')}`
 }
 
 /**
@@ -91,10 +91,11 @@ function times(...t: number[]): string {
 }
 
 /**
- * Signal qui part du cœur vers une session qui travaille. Une charge électrostatique se rassemble
- * d'abord sur la surface de la sphère invisible, vue en 3D : des anneaux de latitude se resserrent
- * sur le pôle d'émission, des méridiens convergent vers lui, des étincelles crépitent sur la face
- * avant. Puis la charge se libère et file le long de l'axone ; la session s'illumine à son arrivée.
+ * Signal qui part du cœur vers une session qui travaille. Une charge électrique se rassemble d'abord
+ * sur la surface de la sphère invisible, vue en 3D : des vagues floues et irrégulières se resserrent
+ * sur le pôle d'émission, de plus en plus serrées et vives, dans un voile qui s'épaissit, le tout
+ * troublé par un filtre de turbulence (#fElectric). Puis la charge se libère et file le long de
+ * l'axone ; la session s'illumine à son arrivée.
  * Pour un sous-agent, le signal part directement de son parent.
  */
 function Signal({ node, a, cx, cy, sphere, scale }: { node: Placed; a: Axon; cx: number; cy: number; sphere: number; scale: number }) {
@@ -108,65 +109,65 @@ function Signal({ node, a, cx, cy, sphere, scale }: { node: Placed; a: Axon; cx:
   return (
     <g className="signal" aria-hidden>
       {!satellite && (
-        <g className="charge">
-          {/* Anneaux de latitude qui se resserrent sur le pôle, l'un après l'autre. */}
-          {Array.from({ length: RINGS }, (_, k) => {
-            const start = 0.03 + k * 0.1
+        <g className="charge" filter="url(#fElectric)">
+          {/* Voile diffus qui s'épaissit autour du pôle pendant toute la charge. */}
+          <defs>
+            <radialGradient id={`gHaze-${session.id}`} gradientUnits="userSpaceOnUse" cx={a.sx} cy={a.sy} r={sphere * 0.5}>
+              <stop offset="0" stopColor="#bdf3ff" stopOpacity="0.9" />
+              <stop offset="0.35" stopColor="#00D4FF" stopOpacity="0.45" />
+              <stop offset="1" stopColor="#00D4FF" stopOpacity="0" />
+            </radialGradient>
+          </defs>
+          <path className="charge-haze" d={wavePath(f, CHARGE_REACH, 0.08, turn, cx, cy, sphere)} fill={`url(#gHaze-${session.id})`} opacity="0">
+            {/* Le voile se contracte avec les vagues : la charge se densifie au pôle. */}
+            <animate
+              attributeName="d"
+              values={[1, 1, 0.8, 0.5, 0.22, 0.22].map((m) => wavePath(f, CHARGE_REACH * m, 0.08, turn + m, cx, cy, sphere)).join(';')}
+              keyTimes={times(0, 0.05, c * 0.5, c * 0.8, c, 1)}
+              {...anim}
+            />
+            <animate attributeName="opacity" values="0;0.12;0.3;0.85;0;0" keyTimes={times(0, 0.05, c * 0.55, c, c + 0.05, 1)} {...anim} />
+          </path>
+          {/* Vagues floues qui se resserrent sur le pôle, de plus en plus serrées et vives. */}
+          {WAVE_STARTS.map((q, k) => {
+            const start = 0.02 + q * (c - 0.06)
             const span = c - start
-            const reach = CHARGE_REACH * 0.95
-            const shapes = [1, 1, 0.72, 0.48, 0.27, 0.11, 0.03, 0.03].map((q) => ringPath(f, Math.max(0.03, reach * q), cx, cy, sphere))
+            const phase = turn + k * 1.9
+            const wobble = 0.1 + 0.06 * hash(session.id, 70 + k)
+            const shapes = [1, 1, 0.66, 0.38, 0.16, 0.04, 0.04].map((m) => wavePath(f, CHARGE_REACH * m, wobble * (0.4 + 0.6 * m), phase + m * 2, cx, cy, sphere))
+            const peak = (0.35 + 0.6 * q).toFixed(2)
             return (
-              <path key={k} className="charge-ring" d={shapes[0]} strokeWidth={1.1 * scale} opacity="0">
+              <path key={k} className="charge-wave" d={shapes[0]} strokeWidth={(2.6 - 1.2 * q) * scale} opacity="0">
                 <animate
                   attributeName="d"
                   values={shapes.join(';')}
-                  keyTimes={times(0, start, start + span * 0.2, start + span * 0.4, start + span * 0.6, start + span * 0.8, c, 1)}
+                  keyTimes={times(0, start, start + span * 0.3, start + span * 0.58, start + span * 0.82, c, 1)}
                   {...anim}
                 />
-                <animate attributeName="opacity" values="0;0;0.8;0.7;0;0" keyTimes={times(0, start, start + 0.04, c - 0.02, c + 0.01, 1)} {...anim} />
+                <animate attributeName="opacity" values={`0;0;0.25;${peak};0;0`} keyTimes={times(0, start, start + span * 0.3, c - 0.01, c + 0.01, 1)} {...anim} />
               </path>
             )
           })}
-          {/* Méridiens : la charge les parcourt jusqu'au pôle, en léger décalé. */}
-          {Array.from({ length: MERIDIANS }, (_, k) => {
-            const b = turn + (k / MERIDIANS) * 2 * Math.PI
-            const start = 0.02 + 0.12 * hash(session.id, 40 + k)
-            const depth = onSphere(f, 0.6, b, cx, cy, sphere).z
-            return (
-              <path
-                key={k}
-                className="charge-front"
-                d={meridianPath(f, b, cx, cy, sphere)}
-                pathLength={100}
-                strokeDasharray="30 200"
-                strokeWidth={(0.6 + 0.9 * depth) * scale}
-                opacity="0"
-              >
-                <animate attributeName="stroke-dashoffset" values="30;30;-70;-70" keyTimes={times(0, start, c, 1)} {...anim} />
-                <animate attributeName="opacity" values={`0;0;${(0.45 + 0.5 * depth).toFixed(2)};0.9;0;0`} keyTimes={times(0, start, start + 0.03, c - 0.02, c + 0.01, 1)} {...anim} />
-              </path>
-            )
-          })}
-          {/* Étincelles sur la face avant, plus grosses quand elles sont plus proches. */}
+          {/* Quelques étincelles noyées dans le flou, sur la face avant. */}
           {Array.from({ length: SPARKS }, (_, k) => {
-            let p = onSphere(f, 0.25 + 0.75 * hash(session.id, 50 + k), hash(session.id, 60 + k) * 2 * Math.PI, cx, cy, sphere)
-            if (p.z < 0.2) p = onSphere(f, 0.25 + 0.5 * hash(session.id, 50 + k), hash(session.id, 60 + k) * 2 * Math.PI + Math.PI, cx, cy, sphere)
-            const o = k * 0.035
+            let p = onSphere(f, 0.15 + 0.5 * hash(session.id, 50 + k), hash(session.id, 60 + k) * 2 * Math.PI, cx, cy, sphere)
+            if (p.z < 0.2) p = onSphere(f, 0.15 + 0.35 * hash(session.id, 50 + k), hash(session.id, 60 + k) * 2 * Math.PI + Math.PI, cx, cy, sphere)
+            const o = k * 0.05
             return (
-              <circle key={k} className="spark" cx={p.x} cy={p.y} r={(0.7 + 0.9 * p.z) * scale} opacity="0">
+              <circle key={k} className="spark" cx={p.x} cy={p.y} r={(1 + 0.8 * p.z) * scale} opacity="0">
                 <animate
                   attributeName="opacity"
                   calcMode="discrete"
-                  values="0;0.9;0;0.7;0;0.95;0"
-                  keyTimes={times(0, c * 0.18 + o, c * 0.3 + o, c * 0.46 + o, c * 0.6 + o, c * 0.72 + o, c + 0.01)}
+                  values="0;0.8;0;0.6;0;0.9;0"
+                  keyTimes={times(0, c * 0.3 + o, c * 0.4 + o, c * 0.55 + o, c * 0.65 + o, c * 0.78 + o, c + 0.01)}
                   {...anim}
                 />
               </circle>
             )
           })}
           <circle className="charge-glow" cx={a.sx} cy={a.sy} r="0">
-            <animate attributeName="r" values={`0;0;${5 * scale};${8 * scale};0;0`} keyTimes={times(0, 0.1, c - 0.04, c, c + 0.08, 1)} {...anim} />
-            <animate attributeName="opacity" values="0;0;0.9;1;0;0" keyTimes={times(0, 0.1, c - 0.04, c, c + 0.08, 1)} {...anim} />
+            <animate attributeName="r" values={`0;${2 * scale};${4.5 * scale};${9 * scale};0;0`} keyTimes={times(0, c * 0.4, c * 0.8, c, c + 0.08, 1)} {...anim} />
+            <animate attributeName="opacity" values="0;0.35;0.7;1;0;0" keyTimes={times(0, c * 0.4, c * 0.8, c, c + 0.08, 1)} {...anim} />
           </circle>
         </g>
       )}
@@ -299,6 +300,27 @@ export function Network({
           <stop offset=".35" stopColor="#00D4FF" stopOpacity=".9" />
           <stop offset="1" stopColor="#00D4FF" stopOpacity="0" />
         </radialGradient>
+        {/* Flou électrique de la charge : turbulence qui scintille, déformation, double flou. */}
+        <filter id="fElectric" x="-60%" y="-60%" width="220%" height="220%" colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency={0.11 / hub} numOctaves={2} seed={3} result="noise">
+            {!WALLPAPER_LOW_FPS && (
+              <animate
+                attributeName="baseFrequency"
+                values={[0.11, 0.14, 0.09, 0.125, 0.1, 0.135].map((v) => (v / hub).toFixed(3)).join(';')}
+                dur="0.5s"
+                calcMode="discrete"
+                repeatCount="indefinite"
+              />
+            )}
+          </feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale={7 * hub} xChannelSelector="R" yChannelSelector="G" result="warped" />
+          <feGaussianBlur in="warped" stdDeviation={1.3 * hub} result="soft" />
+          <feGaussianBlur in="warped" stdDeviation={4.5 * hub} result="glow" />
+          <feMerge>
+            <feMergeNode in="glow" />
+            <feMergeNode in="soft" />
+          </feMerge>
+        </filter>
         <linearGradient id="gRing" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#2672C9" />
           <stop offset=".55" stopColor="#00D4FF" />
