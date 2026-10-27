@@ -18,6 +18,8 @@ export interface Layout {
   ry: number
   /** Rayons du grand anneau qui tourne, ramenés dans l'écran sur un téléphone. */
   orbit: { rx: number; ry: number }
+  /** Zone utile (écran moins les bandes réservées). */
+  area: { left: number; top: number; right: number; bottom: number }
   nodes: Placed[]
 }
 
@@ -121,7 +123,75 @@ export function layout(sessions: Session[], width: number, height: number, inset
   const k = Math.min(1, room / reach)
   const orbit = { rx: (rx + ORBIT_GAP) * k, ry: (ry + ORBIT_GAP) * k }
 
-  return { cx, cy, rx, ry, orbit, nodes }
+  const area = { left: insets.left, top: insets.top, right: width - insets.right, bottom: height - insets.bottom }
+  return { cx, cy, rx, ry, orbit, area, nodes }
+}
+
+export interface Moon {
+  x: number
+  y: number
+  /** Angle sur l'orbite (radians, 180° = gauche). */
+  angle: number
+  r: number
+}
+
+export interface MoonOrbit {
+  rx: number
+  ry: number
+  /** Noms à gauche des lunes s'il y a la place, sinon dessous (téléphone). */
+  labels: 'side' | 'below'
+  /** Arc gauche tracé en pointillés : angles de début et de fin (radians). */
+  from: number
+  to: number
+  moons: Moon[]
+}
+
+const MOON_STEP = (22 * Math.PI) / 180
+const MOON_SPAN_MAX = (110 * Math.PI) / 180
+const MOON_MARGIN = 26
+/** Largeur moyenne d'un caractère des noms (Cinzel 11 px, espacé), pour réserver leur place. */
+const LABEL_CHAR = 8
+const LABEL_GAP = 12
+
+/** Largeur réservée au nom d'un plugin, en px. */
+export function labelWidth(label: string, ui = 1): number {
+  return label.length * LABEL_CHAR * ui
+}
+
+/**
+ * Lunes des plugins : sur une orbite plus large que celle des sessions, uniquement sur son arc
+ * gauche, régulièrement espacées autour de l'horizontale, dans l'ordre de haut en bas. Leur taille
+ * croît un peu avec le nombre de skills. L'orbite est resserrée pour laisser la place des noms à
+ * gauche ; quand l'écran est trop étroit (téléphone), les noms passent sous les lunes.
+ */
+export function moonOrbit(layout: Layout, items: { skills: number; label: string }[], ui = 1): MoonOrbit {
+  const { cx, cy, rx, ry, area } = layout
+  const radius = (n: number) => (10 + 2.6 * Math.sqrt(Math.max(1, n))) * ui
+  const biggest = Math.max(0, ...items.map((p) => radius(p.skills)))
+  const widest = Math.max(0, ...items.map((p) => labelWidth(p.label, ui)))
+  const ideal = rx * 1.32
+  const room = cx - area.left - MOON_MARGIN - biggest
+  const sideRoom = room - widest - LABEL_GAP * ui
+  const labels = sideRoom >= rx * 1.18 ? 'side' : 'below'
+  const orbitRx = Math.min(ideal, labels === 'side' ? sideRoom : room)
+  const orbitRy = ry * 1.22
+  const span = Math.min(MOON_SPAN_MAX, MOON_STEP * Math.max(0, items.length - 1))
+  const start = Math.PI + span / 2
+  const step = items.length > 1 ? span / (items.length - 1) : 0
+  const moons = items.map((p, i) => {
+    const n = p.skills
+    // De l'angle le plus haut (au-dessus de l'horizontale) vers le plus bas.
+    const angle = start - i * step
+    const y = cy + orbitRy * Math.sin(angle)
+    return {
+      angle,
+      x: cx + orbitRx * Math.cos(angle),
+      y: Math.max(area.top + MOON_MARGIN + biggest, Math.min(area.bottom - MOON_MARGIN - biggest, y)),
+      r: radius(n),
+    }
+  })
+  const pad = (16 * Math.PI) / 180
+  return { rx: orbitRx, ry: orbitRy, labels, from: start - span - pad, to: start + pad, moons }
 }
 
 /**

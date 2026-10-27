@@ -3,7 +3,7 @@ import { paintBackdrop } from './backdrop'
 import { hubScale, layout } from './layout'
 import { readInsets, WALLPAPER, WALLPAPER_LOW_FPS, WALLPAPER_NATIVE, type Insets } from './mode'
 import { Network } from './Network'
-import { PluginBar } from './PluginBar'
+import { PluginMoons } from './PluginMoons'
 import { SessionPanel } from './SessionPanel'
 import { usePaused } from './usePaused'
 import { useSnapshot } from './useSnapshot'
@@ -104,7 +104,7 @@ export default function App() {
   const origin = selected ? { x: selected.x, y: selected.y } : null
   useWallpaperTicker(sessions.some((s) => s.status === 'running' || s.status === 'needs'), paused)
 
-  // Variables CSS lues par theme.css pour décaler la marque, la barre des plugins et le message hors ligne.
+  // Variables CSS lues par theme.css pour décaler la marque et le message hors ligne.
   useEffect(() => {
     const root = document.documentElement
     root.classList.toggle('wallpaper', WALLPAPER)
@@ -134,7 +134,7 @@ export default function App() {
       <Particles insets={insets} />
       <Network width={width} height={height} layout={net} ui={ui} dormant={dormant} selectedId={selectedId} onSelect={setSelectedId} />
 
-      <PluginBar hidden={paused} />
+      <PluginMoons layout={net} width={width} height={height} ui={ui} hidden={paused} />
 
       {/* Marque en haut à droite. En fond d'écran, le bouton pause prend la place du logo au survol. */}
       <div className={`brand${WALLPAPER ? ' with-pause' : ''}`}>

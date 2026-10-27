@@ -71,7 +71,7 @@ et y retourne à la fermeture.
   - Rechargé à chaque changement signalé par le flux SSE, sans sondage propre.
 - **Saisie** en bas (Entrée envoie, Maj+Entrée va à la ligne). Elle est désactivée si la session est
   clôturée ou si l'appareil n'est pas autorisé.
-- **Brouillon** : un message écrit et pas encore envoyé est gardé par le serveur IArPol, par
+- **Brouillon** (sans indicateur à l'écran) : un message écrit et pas encore envoyé est gardé par le serveur IArPol, par
   session (`server/src/drafts.js`, `~/.local/state/iarpol/drafts.json`, lisible par l'utilisateur
   seul). Il survit à la fermeture de la fenêtre et suit d'un appareil à l'autre (téléphone, fond
   d'écran). Enregistré 0,6 s après la dernière frappe, et tout de suite à la fermeture de la fenêtre
@@ -145,14 +145,21 @@ erreurs, sans appels d'outils ni raisonnements, 2000 messages au plus),
 `POST /api/sessions/:id/prompt` (`{text}`), `/finish`, `/view`, `GET` et `PUT
 /api/sessions/:id/draft` (`{text}`, vide pour effacer).
 
-## Plugins custom (barre du haut, `web/src/PluginBar.tsx`)
+## Plugins custom en lunes (`web/src/PluginMoons.tsx`)
 
-En haut de l'écran, les plugins **custom** d'OpenCode qui apportent des skills : ceux d'ArPol
-(`~/.config/opencode/plugins/*`, `source.type: "local"` dans `GET /api/plugin`). Les plugins intégrés
-(`builtin`) et les paquets npm (Superpowers, Context7, claude-auth…) ne sont pas listés. Un clic
-déroule ses skills ; un clic sur une skill ouvre sa fenêtre (`web/src/SkillPanel.tsx`), qui sort de la
-skill choisie.
+Les plugins **custom** d'OpenCode qui apportent des skills, c'est-à-dire ceux d'ArPol
+(`~/.config/opencode/plugins/*`, `source.type: "local"` dans `GET /api/plugin`), sont des **lunes**
+sur une orbite plus large que celle des sessions, **à gauche de l'écran seulement**. Les plugins
+intégrés (`builtin`) et les paquets npm (Superpowers, Context7, claude-auth…) ne sont pas listés.
 
+- **Placement** (`layout.ts`, `moonOrbit`) : arc gauche, 22° entre deux lunes (110° au plus), par
+  ordre alphabétique de haut en bas, tracé en pointillés qui s'estompent aux extrémités.
+- **Lune** : éclairée du côté du cœur, comme par un soleil, avec quelques cratères et un halo qui
+  respire. Sa taille croît un peu avec le nombre de skills. Nom à gauche ; sur un écran étroit, il
+  passe dessous et l'orbite se resserre.
+- **Clic** : les skills apparaissent **en surimpression sur le fond**, sans fenêtre, à droite de la
+  lune et reliées à elle. Le reste de la scène s'estompe. Un clic ailleurs ou Échap referme. Un clic
+  sur une skill ouvre sa fenêtre (`web/src/SkillPanel.tsx`), qui sort de la skill choisie.
 - **Dynamique** : `GET /api/plugin` et `GET /api/skill` d'OpenCode, relus à chaque ouverture d'un
   plugin, toutes les minutes et au retour sur l'application. Un plugin sans skill n'apparaît pas.
 - **Rattachement** (`server/src/skills.js`) : OpenCode ne dit pas quel plugin a enregistré quelle
@@ -203,7 +210,7 @@ Mode utilisé par Hidamari sur ArPol-Station (`https://iarpol.arpol.fr/?wallpape
     35 % avant contre **15 % / 7 %** avec des sessions actives (démo).
 - **Zone réservée.** La barre des tâches est évitée automatiquement grâce à `screen.availLeft` et
   ses équivalents (zone de travail du bureau). On peut forcer la valeur avec `&left=`, `&top=`,
-  `&right=` et `&bottom=` (en px). Le réseau, la marque et la barre des plugins se placent dans la
+  `&right=` et `&bottom=` (en px). Le réseau, les lunes des plugins et la marque se placent dans la
   zone utile.
 - **Grands écrans.** L'interface est agrandie de ×1 à ×1,5 selon la zone utile.
 - `&fps=N` règle la cadence active. **À partir de 30, animations natives** (CSS/SMIL à la cadence
@@ -217,7 +224,7 @@ Mode utilisé par Hidamari sur ArPol-Station (`https://iarpol.arpol.fr/?wallpape
     `pauseAnimations()` en mode natif) et transitions coupées ;
   - **flux SSE fermé** : plus de mise à jour des sessions, et le serveur cesse d'interroger OpenCode
     s'il n'a plus d'autre client ;
-  - les sessions (neurones, axones) et la barre des plugins disparaissent. Il ne reste que le fond
+  - les sessions (neurones, axones) et les lunes des plugins disparaissent. Il ne reste que le fond
     de l'interface, atténué (cœur, particules figées, titre), et le bouton de reprise (au survol du
     logo).
 

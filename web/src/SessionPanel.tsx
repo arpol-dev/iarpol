@@ -207,7 +207,6 @@ export function SessionPanel({
   const stick = useRef(true)
   const input = useRef<HTMLTextAreaElement>(null)
   // Brouillon : texte non envoyé, gardé par le serveur (fermeture de la fenêtre, autre appareil).
-  const [draftSaved, setDraftSaved] = useState<boolean | null>(null)
   const typed = useRef(false)
   const pendingDraft = useRef<string | null>(null)
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -232,7 +231,6 @@ export function SessionPanel({
       (d) => {
         if (typed.current || !d?.text) return
         setDraft(d.text)
-        setDraftSaved(true)
       },
       () => {},
     )
@@ -245,10 +243,7 @@ export function SessionPanel({
       const text = pendingDraft.current
       if (text === null) return
       pendingDraft.current = null
-      saveDraft(id, text, keepalive).then(
-        () => setDraftSaved(text.trim() ? true : null),
-        () => setDraftSaved(false),
-      )
+      saveDraft(id, text, keepalive).catch(() => {})
     },
     [id],
   )
@@ -256,7 +251,6 @@ export function SessionPanel({
   const editDraft = (text: string) => {
     typed.current = true
     setDraft(text)
-    setDraftSaved(null)
     pendingDraft.current = text
     if (draftTimer.current) clearTimeout(draftTimer.current)
     draftTimer.current = setTimeout(flushDraft, DRAFT_SAVE_MS)
@@ -325,7 +319,6 @@ export function SessionPanel({
     try {
       await sendMessage(id, text)
       setDraft('')
-      setDraftSaved(null)
       stick.current = true
       load()
     } catch (e) {
@@ -489,11 +482,6 @@ export function SessionPanel({
             </>
           )}
           {sendError && <p className="composer-error">{sendError}</p>}
-          {!composerNote && draft.trim() && draftSaved !== null && (
-            <p className={`composer-draft${draftSaved ? '' : ' failed'}`}>
-              {draftSaved ? 'Brouillon gardé, même si tu fermes la fenêtre' : 'Brouillon non enregistré (serveur injoignable)'}
-            </p>
-          )}
         </footer>
       </section>
     </div>

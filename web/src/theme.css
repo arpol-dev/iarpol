@@ -306,94 +306,69 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 .send:disabled { opacity: 0.35; cursor: default; }
 .composer-note { flex: 1; text-align: center; font-size: 0.85em; color: var(--dim); }
 .composer-error { width: 100%; font-size: 0.8em; color: #e8a0a0; }
-.composer-draft { width: 100%; margin-top: -0.2em; padding-left: 1.1em; font-size: 0.74em; color: rgba(232, 244, 253, 0.32); }
-.composer-draft::before { content: ''; display: inline-block; width: 5px; height: 5px; margin-right: 0.5em; border-radius: 50%; vertical-align: middle; background: rgba(0, 212, 255, 0.6); }
-.composer-draft.failed { color: rgba(240, 184, 64, 0.75); }
-.composer-draft.failed::before { background: var(--gold-lt); }
 
-/* ── Barre des plugins custom d'OpenCode (haut de l'écran, PluginBar.tsx) ──
-   Tailles en em, dérivées de --ui-scale : pas de transform sur la barre, sinon le menu (fixe) se
-   placerait par rapport à elle. */
-.plugins {
-  position: fixed; z-index: 3;
-  top: calc(var(--inset-top, 0px) + 2rem);
-  left: calc(50% + (var(--inset-left, 0px) - var(--inset-right, 0px)) / 2);
-  transform: translateX(-50%);
-  display: flex; align-items: center; gap: 0.25em; padding: 0.3em;
-  font-size: calc(13px * var(--ui-scale, 1));
-  border-radius: 999px;
-  background: rgba(10, 20, 40, 0.42);
-  border: 1px solid rgba(38, 114, 201, 0.22);
-  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3), inset 0 0 24px rgba(38, 114, 201, 0.05);
+/* ── Plugins custom en lunes (PluginMoons.tsx) ──
+   Orbite plus large que celle des sessions, arc gauche seulement. Chaque lune est éclairée du côté
+   du cœur. Un clic fait apparaître ses skills en surimpression sur le fond, la scène s'estompe. */
+svg.moons { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
+.moon-orbit { fill: none; stroke: url(#gMoonOrbit); stroke-width: 1; stroke-dasharray: 1 6; stroke-linecap: round; }
+.moon { pointer-events: auto; cursor: pointer; outline: none; transition: opacity 0.4s; }
+.moon-hit { fill: transparent; }
+.moon-halo { fill: url(#gMoonHalo); opacity: 0.55; transform-box: fill-box; transform-origin: center; animation: moon-breathe 7s ease-in-out infinite; transition: opacity 0.4s; }
+@keyframes moon-breathe { 0%, 100% { transform: scale(0.9); } 50% { transform: scale(1.08); } }
+.moon-body { filter: drop-shadow(0 0 6px rgba(127, 182, 255, 0.25)); transition: filter 0.4s; }
+.moon-crater { fill: rgba(10, 21, 40, 0.28); pointer-events: none; }
+.moon-rim { fill: none; stroke: rgba(156, 200, 255, 0.22); stroke-width: 1; transition: stroke 0.4s; }
+.moon-label {
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 0.12em;
+  fill: rgba(232, 244, 253, 0.32); transition: fill 0.4s; pointer-events: none;
 }
-.plugin-chip {
-  position: relative; flex: none;
-  display: flex; align-items: center; gap: 0.55em;
-  padding: 0.45em 0.8em 0.45em 0.85em; border-radius: 999px;
-  border: 1px solid transparent; background: transparent; cursor: pointer;
-  color: rgba(232, 244, 253, 0.68); font: 500 1em 'Inter', sans-serif; letter-spacing: 0.02em; white-space: nowrap;
-  transition: color 0.25s, background-color 0.25s, border-color 0.25s, box-shadow 0.25s;
-}
-.plugin-chip:hover, .plugin-chip:focus-visible { color: var(--text); background: rgba(38, 114, 201, 0.16); outline: none; }
-.plugin-chip.open {
-  color: #fff; border-color: rgba(0, 212, 255, 0.45);
-  background: linear-gradient(135deg, rgba(38, 114, 201, 0.4), rgba(0, 212, 255, 0.16));
-  box-shadow: 0 0 20px rgba(0, 212, 255, 0.22);
-}
-.plugin-chip.inactive { opacity: 0.45; }
-.plugin-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
-.plugin-count {
-  min-width: 1.7em; padding: 0.08em 0.45em; border-radius: 999px; text-align: center;
-  font-size: 0.78em; font-variant-numeric: tabular-nums; color: var(--dim); background: rgba(232, 244, 253, 0.07);
-}
-.plugin-chip.open .plugin-count { color: #fff; background: rgba(0, 212, 255, 0.22); }
+.moon:hover .moon-halo, .moon:focus-visible .moon-halo, .moon.open .moon-halo { opacity: 1; }
+.moon:hover .moon-label, .moon:focus-visible .moon-label { fill: rgba(232, 244, 253, 0.75); }
+.moon:hover .moon-body, .moon:focus-visible .moon-body { filter: drop-shadow(0 0 10px rgba(127, 182, 255, 0.5)); }
+.moon.open .moon-body { filter: drop-shadow(0 0 14px rgba(0, 212, 255, 0.6)); }
+.moon.open .moon-rim { stroke: rgba(0, 212, 255, 0.7); }
+.moon.open .moon-label { fill: var(--text); }
+.moon.dimmed { opacity: 0.4; }
+.moon.inactive { opacity: 0.35; }
+.moon-tether { stroke: rgba(0, 212, 255, 0.55); stroke-width: 1; stroke-dasharray: 40; animation: tether 0.35s ease-out both; }
+@keyframes tether { from { stroke-dashoffset: 40; } }
 
-.plugin-menu {
-  --caret-x: 50%;
-  position: fixed; z-index: 6;
-  width: min(27em, calc(100vw - 24px)); max-height: min(70vh, 36em);
-  display: flex; flex-direction: column;
-  font-size: calc(13px * var(--ui-scale, 1));
-  background: rgba(10, 20, 40, 0.9);
-  -webkit-backdrop-filter: blur(18px) saturate(130%); backdrop-filter: blur(18px) saturate(130%);
-  border: 1px solid rgba(38, 114, 201, 0.35); border-radius: 14px;
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55), inset 0 0 40px rgba(38, 114, 201, 0.06);
-  transform-origin: var(--caret-x) top;
-  animation: menu-in 0.24s cubic-bezier(0.2, 0.9, 0.3, 1);
+/* Liste ouverte : la scène recule pour laisser lire les skills. */
+svg.net, .particles { transition: opacity 0.45s; }
+.skills-open svg.net { opacity: 0.22; }
+.skills-open .particles { opacity: 0.4; }
+
+.skill-list {
+  position: fixed; z-index: 4; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 0.15em;
+  font-size: calc(14px * var(--ui-scale, 1));
 }
-@keyframes menu-in { from { opacity: 0; transform: translateY(-8px) scale(0.96); } }
-.plugin-menu::before {
-  content: ''; position: absolute; top: -6px; left: calc(var(--caret-x) - 6px); width: 11px; height: 11px;
-  background: rgb(14, 27, 52); border: 1px solid rgba(38, 114, 201, 0.35); border-right: 0; border-bottom: 0;
-  transform: rotate(45deg);
+.skill-line {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0.1em;
+  max-width: 34em; padding: 0.4em 0.7em 0.4em 1.1em; border: 0; border-radius: 8px;
+  background: none; cursor: pointer; color: var(--text); font: inherit; text-align: left;
+  position: relative; animation: skill-in 0.4s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+  text-shadow: 0 0 14px rgba(6, 12, 26, 0.95), 0 0 4px rgba(6, 12, 26, 0.9);
+  transition: background-color 0.25s;
 }
-.plugin-menu::after {
-  content: ''; position: absolute; left: 14px; right: 14px; top: 0; height: 1px; opacity: 0.8;
-  background: linear-gradient(90deg, transparent, var(--cyan) 40%, var(--gold-lt) 80%, transparent);
+@keyframes skill-in { from { opacity: 0; transform: translateX(-14px); } }
+.skill-line::before {
+  content: ''; position: absolute; left: 0.1em; top: 0.95em; width: 5px; height: 5px; border-radius: 50%;
+  background: rgba(156, 200, 255, 0.45); transition: background-color 0.25s, box-shadow 0.25s;
 }
-.plugin-menu-head { padding: 1em 1.2em 0.85em; border-bottom: 1px solid rgba(38, 114, 201, 0.18); }
-.plugin-menu-title { display: flex; align-items: baseline; gap: 0.7em; }
-.plugin-menu-title span { font-family: 'Cinzel', serif; font-weight: 600; font-size: 1.1em; letter-spacing: 0.04em; }
-.plugin-menu-title small { font-size: 0.74em; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
-.plugin-menu ul {
-  list-style: none; overflow-y: auto; padding: 0.45em;
-  scrollbar-width: thin; scrollbar-color: rgba(38, 114, 201, 0.4) transparent;
+.skill-line .skill-name { font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 0.95em; color: #d6ecff; transition: color 0.25s; }
+.skill-line .skill-desc {
+  max-width: 100%; font-size: 0.8em; color: rgba(232, 244, 253, 0.45);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.skill-item {
-  width: 100%; display: flex; flex-direction: column; gap: 0.25em; padding: 0.6em 0.8em;
-  border: 1px solid transparent; border-radius: 9px; background: none; cursor: pointer;
-  color: var(--text); font: inherit; text-align: left;
-  transition: background-color 0.2s, border-color 0.2s;
-}
-.skill-item:hover, .skill-item:focus-visible { background: rgba(38, 114, 201, 0.16); border-color: rgba(0, 212, 255, 0.25); outline: none; }
-.skill-name { display: flex; align-items: center; gap: 0.5em; font-family: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace; font-size: 0.95em; color: #cdeeff; }
-.skill-mode { flex: none; width: 1.05em; height: 1.05em; margin-left: auto; fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; stroke-linecap: round; }
-.skill-mode.editable { color: rgba(0, 212, 255, 0.65); }
-.skill-mode.locked { color: rgba(232, 244, 253, 0.35); }
-.skill-desc {
-  font-size: 0.84em; line-height: 1.42; color: var(--dim);
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+.skill-line:hover, .skill-line:focus-visible { outline: none; background: radial-gradient(ellipse at left, rgba(0, 212, 255, 0.1), transparent 70%); }
+.skill-line:hover .skill-name, .skill-line:focus-visible .skill-name { color: var(--cyan); }
+.skill-line:hover::before, .skill-line:focus-visible::before { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+
+@media (max-width: 600px) {
+  .skill-list { font-size: 13px; }
+  .moon-label { font-size: 9.5px; }
 }
 
 /* ── Fenêtre d'une skill (SkillPanel.tsx) : même verre que la fenêtre de session ── */
@@ -433,14 +408,6 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 .skill-note { padding: 2em; }
 
 @media (max-width: 600px) {
-  /* À gauche de la marque, défilable horizontalement. */
-  .plugins {
-    left: calc(var(--inset-left, 0px) + 0.8rem); right: 8.4rem; transform: none;
-    top: calc(1rem + env(safe-area-inset-top));
-    font-size: 12px; overflow-x: auto; scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent); mask-image: linear-gradient(90deg, #000 85%, transparent);
-  }
-  .plugins::-webkit-scrollbar { display: none; }
   .panel-head { padding: 1.1em 3.6em 0.9em 1.2em; }
   .skill-body, .skill-editor { padding-left: 1.1em; padding-right: 1.1em; }
 }
@@ -450,20 +417,20 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 /* Économe (fps < 30, classe low-fps) : chaque image affichée peut coûter cher (copie de tout
    l'écran entre GPU en mode PRIME on-demand) : aucune animation CSS ni filtre, les mouvements sont
    posés en style inline par useWallpaperTicker à basse cadence. */
-.low-fps *:not(.overlay, .overlay *, .plugin-menu, .plugin-menu *),
-.low-fps *:not(.overlay, .overlay *, .plugin-menu, .plugin-menu *)::before,
-.low-fps *:not(.overlay, .overlay *, .plugin-menu, .plugin-menu *)::after { animation: none !important; }
-/* Les fenêtres et le menu des plugins gardent leurs effets ponctuels (apparition, envol) : quelques
+.low-fps *:not(.overlay, .overlay *, .skill-list, .skill-list *, .moon-tether),
+.low-fps *:not(.overlay, .overlay *, .skill-list, .skill-list *, .moon-tether)::before,
+.low-fps *:not(.overlay, .overlay *, .skill-list, .skill-list *, .moon-tether)::after { animation: none !important; }
+/* Les fenêtres et la liste des skills gardent leurs effets ponctuels (apparition, envol) : quelques
    images, rarement. */
-.low-fps .dot, .low-fps .p { filter: none !important; box-shadow: none !important; }
+.low-fps .dot, .low-fps .p, .low-fps .moon-body { filter: none !important; box-shadow: none !important; }
 .low-fps .node.running .axon { stroke-dasharray: 3 9; stroke: rgba(0, 212, 255, 0.55); }
 .low-fps .p { opacity: 0; }
 
 /* En pause : animations figées (le SMIL est figé par App.tsx) et transitions coupées pour qu'aucune
-   image ne soit plus calculée. Le flux de données étant fermé, les sessions et la barre des plugins
+   image ne soit plus calculée. Le flux de données étant fermé, les sessions et les lunes des plugins
    disparaissent : il ne reste que le fond de l'interface, atténué (cœur, particules, titre). */
 .paused *, .paused *::before, .paused *::after { animation-play-state: paused !important; transition: none !important; }
-.paused .node { display: none; }
+.paused .node, .paused svg.moons { display: none; }
 .paused .net, .paused .particles, .paused .brand { opacity: 0.5; }
 
 .wallpaper .brand { transform: scale(var(--ui-scale, 1)); transform-origin: right top; }
