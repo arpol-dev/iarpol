@@ -24,8 +24,14 @@ export const OPENCODE_USERNAME = process.env.OPENCODE_USERNAME ?? 'opencode';
  */
 export const SKILLS_DIR = resolve(process.env.OPENCODE_SKILLS_DIR ?? join(homedir(), '.config/opencode/skills'));
 
+/** État propre à IArPol (brouillons, versions précédentes des skills). */
+const STATE_DIR = resolve(process.env.IARPOL_STATE_DIR ?? join(homedir(), '.local/state/iarpol'));
+
 /** Versions précédentes d'une skill, gardées à chaque enregistrement depuis IArPol. */
-export const SKILL_BACKUPS = resolve(process.env.IARPOL_SKILL_BACKUPS ?? join(homedir(), '.local/state/iarpol/skill-backups'));
+export const SKILL_BACKUPS = resolve(process.env.IARPOL_SKILL_BACKUPS ?? join(STATE_DIR, 'skill-backups'));
+
+/** Brouillons des messages non envoyés, par session (cf. drafts.js). */
+export const DRAFTS_FILE = join(STATE_DIR, 'drafts.json');
 export const SKILL_BACKUPS_KEEP = 10;
 
 /** Intervalle de sondage, en complément du flux d'événements (qui peut perdre des messages). */

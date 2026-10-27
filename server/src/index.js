@@ -3,6 +3,7 @@ import { createReadStream } from 'node:fs';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, sep } from 'node:path';
 import { HOST, PORT, TRUSTED_PEERS, WEB_DIST } from './config.js';
+import { getDraft, setDraft } from './drafts.js';
 import { finishSession, markViewed, sendPrompt, sessionDetail, SESSION_ID_RE } from './sessions.js';
 import { listPlugins, saveSkill, skillDetail, SKILL_ID_RE, SKILL_MAX } from './skills.js';
 import { getSnapshot, subscribe } from './state.js';
@@ -10,7 +11,7 @@ import { getSnapshot, subscribe } from './state.js';
 const SSE_HEARTBEAT_MS = 25_000;
 const MAX_BODY = 64 * 1024;
 const PROMPT_MAX = 20_000;
-const SESSION_ROUTE = /^\/api\/sessions\/([^/]+)(?:\/(prompt|finish|view))?$/;
+const SESSION_ROUTE = /^\/api\/sessions\/([^/]+)(?:\/(prompt|finish|view|draft))?$/;
 const SKILL_ROUTE = /^\/api\/skills\/([^/]+)$/;
 
 const MIME = {
@@ -104,6 +105,13 @@ async function sessionRoute(req, res, id, action) {
     if (req.method !== 'GET') return sendJson(res, 405, { error: 'méthode non permise' });
     return sendJson(res, 200, await sessionDetail(id));
   }
+  if (action === 'draft') {
+    if (req.method === 'GET') return sendJson(res, 200, { draft: await getDraft(id) });
+    if (req.method !== 'PUT') return sendJson(res, 405, { error: 'méthode non permise' });
+    const { text } = await readJson(req);
+    if (typeof text !== 'string' || text.length > PROMPT_MAX) return sendJson(res, 400, { error: 'brouillon invalide ou trop long' });
+    return sendJson(res, 200, { draft: await setDraft(id, text) });
+  }
   if (req.method !== 'POST') return sendJson(res, 405, { error: 'méthode non permise' });
   if (action === 'prompt') {
     const { text } = await readJson(req);
@@ -111,10 +119,13 @@ async function sessionRoute(req, res, id, action) {
       return sendJson(res, 400, { error: 'message vide ou trop long' });
     }
     await sendPrompt(id, text);
+    await setDraft(id, '');
     return sendJson(res, 202, { ok: true });
   }
-  if (action === 'finish') await finishSession(id);
-  else await markViewed(id);
+  if (action === 'finish') {
+    await finishSession(id);
+    await setDraft(id, '');
+  } else await markViewed(id);
   return sendJson(res, 200, { ok: true });
 }
 

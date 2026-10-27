@@ -71,6 +71,14 @@ et y retourne à la fermeture.
   - Rechargé à chaque changement signalé par le flux SSE, sans sondage propre.
 - **Saisie** en bas (Entrée envoie, Maj+Entrée va à la ligne). Elle est désactivée si la session est
   clôturée ou si l'appareil n'est pas autorisé.
+- **Brouillon** : un message écrit et pas encore envoyé est gardé par le serveur IArPol, par
+  session (`server/src/drafts.js`, `~/.local/state/iarpol/drafts.json`, lisible par l'utilisateur
+  seul). Il survit à la fermeture de la fenêtre et suit d'un appareil à l'autre (téléphone, fond
+  d'écran). Enregistré 0,6 s après la dernière frappe, et tout de suite à la fermeture de la fenêtre
+  ou de l'application. Effacé quand le message part ou que la session est clôturée.
+  - Pas de partage avec OpenCode : il n'a pas d'API de brouillon, son interface ne lit aucun
+    paramètre d'adresse pour pré-remplir la saisie, et ses brouillons restent dans le stockage du
+    navigateur qui l'affiche (IndexedDB `opencode-drafts`, relevé sur OpenCode 2.1.4).
 - **Lecture** : ouvrir la fenêtre marque la session comme lue (« réponse à lire » → « au repos »).
 
 ### Ouvrir dans OpenCode
@@ -134,7 +142,8 @@ secrets.
 Routes : `GET /api/me`, `GET /api/plugins` (sans le contenu des skills, ouvert à tous),
 `GET` et `PUT /api/skills/:id` (`{content}`, appareils de confiance), `GET /api/sessions/:id` (historique allégé : messages, texte des réponses et
 erreurs, sans appels d'outils ni raisonnements, 2000 messages au plus),
-`POST /api/sessions/:id/prompt` (`{text}`), `/finish`, `/view`.
+`POST /api/sessions/:id/prompt` (`{text}`), `/finish`, `/view`, `GET` et `PUT
+/api/sessions/:id/draft` (`{text}`, vide pour effacer).
 
 ## Plugins custom (barre du haut, `web/src/PluginBar.tsx`)
 

@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { ApiError, finishSession, getMe, getSessionDetail, markViewed, openInOpenCode, sendMessage } from './api'
+import { ApiError, finishSession, getDraft, getMe, getSessionDetail, markViewed, openInOpenCode, saveDraft, sendMessage } from './api'
 import { useEmergence, type Point } from './emerge'
 import { Markdown } from './Markdown'
 import { WALLPAPER } from './mode'
@@ -17,6 +17,8 @@ const OUTCOME_LABEL: Record<string, string> = { succeeded: 'réussi', failed: '�
 const CONFIRM_MS = 3000
 /** Durée de l'effet d'envol quand la session s'ouvre dans OpenCode (theme.css : depart). */
 const DEPART_MS = 550
+/** Délai sans frappe avant d'enregistrer le brouillon. */
+const DRAFT_SAVE_MS = 600
 /** Distance au bas du fil en dessous de laquelle on suit les nouveaux messages. */
 const STICK_PX = 120
 
@@ -204,6 +206,11 @@ export function SessionPanel({
   const thread = useRef<HTMLDivElement>(null)
   const stick = useRef(true)
   const input = useRef<HTMLTextAreaElement>(null)
+  // Brouillon : texte non envoyé, gardé par le serveur (fermeture de la fenêtre, autre appareil).
+  const [draftSaved, setDraftSaved] = useState<boolean | null>(null)
+  const typed = useRef(false)
+  const pendingDraft = useRef<string | null>(null)
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const load = useCallback(() => {
     getSessionDetail(id)
@@ -217,6 +224,53 @@ export function SessionPanel({
   useEffect(() => {
     getMe().then((me) => setTrusted(me.trusted), () => setTrusted(false))
   }, [])
+
+  // Brouillon repris à l'ouverture, sauf si l'on a déjà commencé à écrire entre-temps.
+  useEffect(() => {
+    if (!trusted) return
+    getDraft(id).then(
+      (d) => {
+        if (typed.current || !d?.text) return
+        setDraft(d.text)
+        setDraftSaved(true)
+      },
+      () => {},
+    )
+  }, [id, trusted])
+
+  const flushDraft = useCallback(
+    (keepalive = false) => {
+      if (draftTimer.current) clearTimeout(draftTimer.current)
+      draftTimer.current = null
+      const text = pendingDraft.current
+      if (text === null) return
+      pendingDraft.current = null
+      saveDraft(id, text, keepalive).then(
+        () => setDraftSaved(text.trim() ? true : null),
+        () => setDraftSaved(false),
+      )
+    },
+    [id],
+  )
+
+  const editDraft = (text: string) => {
+    typed.current = true
+    setDraft(text)
+    setDraftSaved(null)
+    pendingDraft.current = text
+    if (draftTimer.current) clearTimeout(draftTimer.current)
+    draftTimer.current = setTimeout(flushDraft, DRAFT_SAVE_MS)
+  }
+
+  // Fenêtre fermée (ou page quittée) avant l'enregistrement : on l'envoie tout de suite.
+  useEffect(() => {
+    const onHide = () => document.visibilityState === 'hidden' && flushDraft(true)
+    document.addEventListener('visibilitychange', onHide)
+    return () => {
+      document.removeEventListener('visibilitychange', onHide)
+      flushDraft(true)
+    }
+  }, [flushDraft])
 
   // Rechargé à l'ouverture, puis à chaque changement signalé par le tableau de bord (nouveau message,
   // changement de statut) : pas de sondage propre à la fenêtre.
@@ -265,13 +319,20 @@ export function SessionPanel({
     if (!text || !canAct || sending) return
     setSending(true)
     setSendError(null)
+    // Le serveur efface le brouillon une fois le message envoyé : rien ne doit le réécrire ensuite.
+    if (draftTimer.current) clearTimeout(draftTimer.current)
+    pendingDraft.current = null
     try {
       await sendMessage(id, text)
       setDraft('')
+      setDraftSaved(null)
       stick.current = true
       load()
     } catch (e) {
       setSendError((e as Error).message)
+      // Envoi refusé : le texte reste un brouillon, à garder tel quel.
+      pendingDraft.current = draft
+      flushDraft()
     } finally {
       setSending(false)
       input.current?.focus()
@@ -411,7 +472,7 @@ export function SessionPanel({
                 value={draft}
                 rows={1}
                 placeholder="Écrire à la session…"
-                onChange={(e) => setDraft(e.target.value)}
+                onChange={(e) => editDraft(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault()
@@ -428,6 +489,11 @@ export function SessionPanel({
             </>
           )}
           {sendError && <p className="composer-error">{sendError}</p>}
+          {!composerNote && draft.trim() && draftSaved !== null && (
+            <p className={`composer-draft${draftSaved ? '' : ' failed'}`}>
+              {draftSaved ? 'Brouillon gardé, même si tu fermes la fenêtre' : 'Brouillon non enregistré (serveur injoignable)'}
+            </p>
+          )}
         </footer>
       </section>
     </div>

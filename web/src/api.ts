@@ -8,11 +8,12 @@ export class ApiError extends Error {
   }
 }
 
-async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
+async function call<T>(method: string, path: string, body?: unknown, keepalive = false): Promise<T> {
   const res = await fetch(path, {
     method,
     headers: body === undefined ? undefined : { 'content-type': 'application/json' },
     body: body === undefined ? undefined : JSON.stringify(body),
+    keepalive,
   })
   const data = await res.json().catch(() => ({}))
   if (!res.ok) throw new ApiError(res.status, data.error ?? `erreur ${res.status}`)
@@ -34,6 +35,12 @@ export const getSessionDetail = (id: string) => call<SessionDetail>('GET', `/api
 export const sendMessage = (id: string, text: string) => call<{ ok: true }>('POST', `/api/sessions/${id}/prompt`, { text })
 export const finishSession = (id: string) => call<{ ok: true }>('POST', `/api/sessions/${id}/finish`)
 export const markViewed = (id: string) => call<{ ok: true }>('POST', `/api/sessions/${id}/view`)
+type Draft = { text: string; updated: number } | null
+/** Brouillon du message d'une session, gardé par le serveur (partagé entre les appareils). */
+export const getDraft = (id: string) => call<{ draft: Draft }>('GET', `/api/sessions/${id}/draft`).then((r) => r.draft)
+/** `keepalive` : l'envoi aboutit même si la page se ferme juste après (fermeture de la fenêtre, de l'appli). */
+export const saveDraft = (id: string, text: string, keepalive = false) =>
+  call<{ draft: Draft }>('PUT', `/api/sessions/${id}/draft`, { text }, keepalive).then((r) => r.draft)
 export const getPlugins = () => call<{ plugins: PluginInfo[] }>('GET', '/api/plugins').then((r) => r.plugins)
 export const getSkill = (id: string) => call<SkillDetail>('GET', `/api/skills/${encodeURIComponent(id)}`)
 export const saveSkill = (id: string, content: string) => call<SkillDetail>('PUT', `/api/skills/${encodeURIComponent(id)}`, { content })

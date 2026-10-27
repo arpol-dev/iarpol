@@ -306,6 +306,10 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 .send:disabled { opacity: 0.35; cursor: default; }
 .composer-note { flex: 1; text-align: center; font-size: 0.85em; color: var(--dim); }
 .composer-error { width: 100%; font-size: 0.8em; color: #e8a0a0; }
+.composer-draft { width: 100%; margin-top: -0.2em; padding-left: 1.1em; font-size: 0.74em; color: rgba(232, 244, 253, 0.32); }
+.composer-draft::before { content: ''; display: inline-block; width: 5px; height: 5px; margin-right: 0.5em; border-radius: 50%; vertical-align: middle; background: rgba(0, 212, 255, 0.6); }
+.composer-draft.failed { color: rgba(240, 184, 64, 0.75); }
+.composer-draft.failed::before { background: var(--gold-lt); }
 
 /* ── Barre des plugins custom d'OpenCode (haut de l'écran, PluginBar.tsx) ──
    Tailles en em, dérivées de --ui-scale : pas de transform sur la barre, sinon le menu (fixe) se
