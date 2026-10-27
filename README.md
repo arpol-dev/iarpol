@@ -153,7 +153,7 @@ sur une orbite plus large que celle des sessions, **à gauche de l'écran seulem
 intégrés (`builtin`) et les paquets npm (Superpowers, Context7, claude-auth…) ne sont pas listés.
 
 - **Placement** (`layout.ts`, `moonOrbit`) : arc gauche, 22° entre deux lunes (110° au plus), par
-  ordre alphabétique de haut en bas, tracé en pointillés qui s'estompent aux extrémités.
+  ordre alphabétique de haut en bas, sans tracé d'orbite entre elles.
 - **Lune** : éclairée du côté du cœur, comme par un soleil, avec quelques cratères et un halo qui
   respire. Sa taille croît un peu avec le nombre de skills. Nom à gauche ; sur un écran étroit, il
   passe dessous et l'orbite se resserre.

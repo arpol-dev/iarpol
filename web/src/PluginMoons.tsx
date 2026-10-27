@@ -11,11 +11,6 @@ const EDGE = 12
 /** Écart entre une lune et la liste de ses skills. */
 const LIST_GAP = 30
 
-function arcPath(cx: number, cy: number, rx: number, ry: number, from: number, to: number): string {
-  const p = (a: number) => `${(cx + rx * Math.cos(a)).toFixed(1)},${(cy + ry * Math.sin(a)).toFixed(1)}`
-  return `M${p(from)} A${rx.toFixed(1)},${ry.toFixed(1)} 0 0 1 ${p(to)}`
-}
-
 /** Place du nom : à gauche de la lune, ou dessous sur un écran étroit, sans sortir de l'écran. */
 function labelPlace(moon: Moon, text: string, mode: MoonOrbit['labels'], left: number, ui: number) {
   if (mode === 'side') return { x: moon.x - moon.r - 12 * ui, y: moon.y + 4 * ui, anchor: 'end' as const }
@@ -218,17 +213,11 @@ export function PluginMoons({
     <>
       <svg ref={layer} className="moons" viewBox={`0 0 ${width} ${height}`} aria-label="Plugins custom d'OpenCode">
         <defs>
-          <linearGradient id="gMoonOrbit" gradientUnits="userSpaceOnUse" x1="0" y1={cy - orbit.ry} x2="0" y2={cy + orbit.ry}>
-            <stop offset="0" stopColor="#2672C9" stopOpacity="0" />
-            <stop offset="0.5" stopColor="#7fb6ff" stopOpacity="0.35" />
-            <stop offset="1" stopColor="#2672C9" stopOpacity="0" />
-          </linearGradient>
           <radialGradient id="gMoonHalo">
             <stop offset="0" stopColor="#9cc8ff" stopOpacity=".22" />
             <stop offset="1" stopColor="#2672C9" stopOpacity="0" />
           </radialGradient>
         </defs>
-        <path className="moon-orbit" d={arcPath(cx, cy, orbit.rx, orbit.ry, orbit.from, orbit.to)} />
         {openMoon && (
           <line
             className="moon-tether"

@@ -140,9 +140,6 @@ export interface MoonOrbit {
   ry: number
   /** Noms à gauche des lunes s'il y a la place, sinon dessous (téléphone). */
   labels: 'side' | 'below'
-  /** Arc gauche tracé en pointillés : angles de début et de fin (radians). */
-  from: number
-  to: number
   moons: Moon[]
 }
 
@@ -190,8 +187,7 @@ export function moonOrbit(layout: Layout, items: { skills: number; label: string
       r: radius(n),
     }
   })
-  const pad = (16 * Math.PI) / 180
-  return { rx: orbitRx, ry: orbitRy, labels, from: start - span - pad, to: start + pad, moons }
+  return { rx: orbitRx, ry: orbitRy, labels, moons }
 }
 
 /**

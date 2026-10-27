@@ -311,7 +311,6 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
    Orbite plus large que celle des sessions, arc gauche seulement. Chaque lune est éclairée du côté
    du cœur. Un clic fait apparaître ses skills en surimpression sur le fond, la scène s'estompe. */
 svg.moons { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; }
-.moon-orbit { fill: none; stroke: url(#gMoonOrbit); stroke-width: 1; stroke-dasharray: 1 6; stroke-linecap: round; }
 .moon { pointer-events: auto; cursor: pointer; outline: none; transition: opacity 0.4s; }
 .moon-hit { fill: transparent; }
 .moon-halo { fill: url(#gMoonHalo); opacity: 0.55; transform-box: fill-box; transform-origin: center; animation: moon-breathe 7s ease-in-out infinite; transition: opacity 0.4s; }
