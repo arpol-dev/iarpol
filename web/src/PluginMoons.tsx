@@ -11,10 +11,18 @@ const EDGE = 12
 /** Écart entre une lune et la liste de ses skills. */
 const LIST_GAP = 30
 
-/** Place du nom : à gauche de la lune, ou dessous sur un écran étroit, sans sortir de l'écran. */
-function labelPlace(moon: Moon, text: string, mode: MoonOrbit['labels'], left: number, ui: number) {
+/** Le nom de cette lune est-il sous elle ? (rangée du haut : alternativement dessous et dessus) */
+function labelBelow(mode: MoonOrbit['labels'], index: number): boolean {
+  return mode === 'below' || (mode === 'alternate' && index % 2 === 0)
+}
+
+/** Place du nom : à gauche de la lune, ou dessous / dessus sur un écran étroit, sans sortir de l'écran. */
+function labelPlace(moon: Moon, text: string, mode: MoonOrbit['labels'], index: number, area: Layout['area'], ui: number) {
   if (mode === 'side') return { x: moon.x - moon.r - 12 * ui, y: moon.y + 4 * ui, anchor: 'end' as const }
-  return { x: Math.max(left + labelWidth(text, ui) / 2 + 6, moon.x), y: moon.y + moon.r + 16 * ui, anchor: 'middle' as const }
+  const half = labelWidth(text, ui) / 2 + 6
+  const x = Math.min(area.right - half, Math.max(area.left + half, moon.x))
+  const y = labelBelow(mode, index) ? moon.y + moon.r + 14 * ui : moon.y - moon.r - 8 * ui
+  return { x, y, anchor: 'middle' as const }
 }
 
 function MoonBody({
@@ -23,7 +31,7 @@ function MoonBody({
   index,
   cx,
   cy,
-  left,
+  area,
   labels,
   ui,
   open,
@@ -35,7 +43,7 @@ function MoonBody({
   index: number
   cx: number
   cy: number
-  left: number
+  area: Layout['area']
   labels: MoonOrbit['labels']
   ui: number
   open: boolean
@@ -52,7 +60,7 @@ function MoonBody({
     const d = (0.2 + 0.4 * hash(plugin.id, 20 + k)) * r
     return { x: x + d * Math.cos(a), y: y + d * Math.sin(a), r: (0.1 + 0.11 * hash(plugin.id, 30 + k)) * r }
   })
-  const label = labelPlace(moon, plugin.label, labels, left, ui)
+  const label = labelPlace(moon, plugin.label, labels, index, area, ui)
 
   return (
     <g
@@ -91,18 +99,22 @@ function MoonBody({
 
 /**
  * Skills d'un plugin, en surimpression sur le fond (pas de fenêtre) : une ligne par skill, à droite
- * de sa lune et reliée à elle. Un clic sur une skill ouvre sa fenêtre.
+ * de sa lune et reliée à elle, ou sous la rangée des lunes sur un téléphone (`below`). Un clic sur
+ * une skill ouvre sa fenêtre.
  */
 function SkillList({
   plugin,
   moon,
   area,
+  below,
   listRef,
   onPick,
 }: {
   plugin: PluginInfo
   moon: Moon
   area: Layout['area']
+  /** Haut de la liste quand elle s'affiche sous la rangée des lunes (téléphone). */
+  below: number | null
   listRef: React.RefObject<HTMLDivElement | null>
   onPick: (id: string, origin: Point) => void
 }) {
@@ -110,17 +122,24 @@ function SkillList({
 
   // Centrée sur la lune, sans sortir de la zone utile.
   useLayoutEffect(() => {
+    if (below !== null) return
     const height = listRef.current?.offsetHeight ?? 0
     setTop(Math.max(area.top + EDGE + height / 2, Math.min(area.bottom - EDGE - height / 2, moon.y)))
-  }, [moon.y, area.top, area.bottom, listRef, plugin])
+  }, [moon.y, area.top, area.bottom, listRef, plugin, below])
 
+  const left = below !== null ? area.left + EDGE : moon.x + moon.r + LIST_GAP
   return (
     <div
       ref={listRef}
-      className="skill-list"
+      className={`skill-list${below !== null ? ' below' : ''}`}
       role="menu"
       aria-label={`Skills de ${plugin.label}`}
-      style={{ left: moon.x + moon.r + LIST_GAP, top, maxWidth: `calc(100vw - ${moon.x + moon.r + LIST_GAP + EDGE}px)` }}
+      style={{
+        left,
+        top: below ?? top,
+        maxWidth: `calc(100vw - ${left + EDGE}px)`,
+        maxHeight: below !== null ? `calc(100vh - ${below + EDGE}px)` : undefined,
+      }}
     >
       {plugin.skills.map((skill, i) => (
         <button
@@ -208,6 +227,9 @@ export function PluginMoons({
   const { cx, cy, area } = layout
   const openIndex = plugins.findIndex((p) => p.id === openId)
   const openMoon = openIndex >= 0 ? orbit.moons[openIndex] : null
+  // Téléphone : la liste s'affiche sous la rangée des lunes et de leurs noms.
+  const listTop = orbit.top ? Math.max(...orbit.moons.map((m) => m.y + m.r)) + 34 * ui : null
+  const tetherFrom = openMoon && (labelBelow(orbit.labels, openIndex) ? openMoon.y + openMoon.r + 20 * ui : openMoon.y + openMoon.r + 5)
 
   return (
     <>
@@ -218,15 +240,18 @@ export function PluginMoons({
             <stop offset="1" stopColor="#2672C9" stopOpacity="0" />
           </radialGradient>
         </defs>
-        {openMoon && (
-          <line
-            className="moon-tether"
-            x1={openMoon.x + openMoon.r + 5}
-            y1={openMoon.y}
-            x2={openMoon.x + openMoon.r + LIST_GAP - 8}
-            y2={openMoon.y}
-          />
-        )}
+        {openMoon &&
+          (listTop !== null ? (
+            <line className="moon-tether" x1={openMoon.x} y1={tetherFrom ?? 0} x2={openMoon.x} y2={listTop - 6} />
+          ) : (
+            <line
+              className="moon-tether"
+              x1={openMoon.x + openMoon.r + 5}
+              y1={openMoon.y}
+              x2={openMoon.x + openMoon.r + LIST_GAP - 8}
+              y2={openMoon.y}
+            />
+          ))}
         {plugins.map((plugin, i) => (
           <MoonBody
             key={plugin.id}
@@ -235,7 +260,7 @@ export function PluginMoons({
             index={i}
             cx={cx}
             cy={cy}
-            left={area.left}
+            area={area}
             labels={orbit.labels}
             ui={ui}
             open={plugin.id === openId}
@@ -254,6 +279,7 @@ export function PluginMoons({
           plugin={plugins[openIndex]}
           moon={openMoon}
           area={area}
+          below={listTop}
           listRef={list}
           onPick={(id, origin) => {
             setOpenId(null)

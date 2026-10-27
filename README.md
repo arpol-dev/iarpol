@@ -69,7 +69,9 @@ et y retourne à la fermeture.
     (bouton **Ouvrir**). Une réponse qui n'a fait qu'appeler des outils n'apparaît pas.
   - Séparateur de fin de tour ; heure et modèle sous la dernière réponse d'une suite.
   - Rechargé à chaque changement signalé par le flux SSE, sans sondage propre.
-- **Saisie** en bas (Entrée envoie, Maj+Entrée va à la ligne). Elle est désactivée si la session est
+- **Saisie** en bas. Au clavier physique, Entrée envoie et Maj+Entrée va à la ligne. Sur écran
+  tactile (`pointer: coarse`), Entrée va à la ligne comme dans les messageries mobiles, et seul le
+  bouton envoie. Elle est désactivée si la session est
   clôturée ou si l'appareil n'est pas autorisé.
 - **Brouillon** (sans indicateur à l'écran) : un message écrit et pas encore envoyé est gardé par le serveur IArPol, par
   session (`server/src/drafts.js`, `~/.local/state/iarpol/drafts.json`, lisible par l'utilisateur
@@ -155,8 +157,11 @@ intégrés (`builtin`) et les paquets npm (Superpowers, Context7, claude-auth…
 - **Placement** (`layout.ts`, `moonOrbit`) : arc gauche, 22° entre deux lunes (110° au plus), par
   ordre alphabétique de haut en bas, sans tracé d'orbite entre elles.
 - **Lune** : éclairée du côté du cœur, comme par un soleil, avec quelques cratères et un halo qui
-  respire. Sa taille croît un peu avec le nombre de skills. Nom à gauche ; sur un écran étroit, il
-  passe dessous et l'orbite se resserre.
+  respire. Sa taille croît un peu avec le nombre de skills. Nom à gauche.
+- **Téléphone** (largeur utile < 600 px, `layout.narrow`) : les lunes forment une rangée en haut de
+  l'écran, sous la marque, légèrement incurvée ; leurs noms alternent dessous et dessus pour ne pas
+  se chevaucher, et les skills s'affichent sous la rangée. L'orbite des sessions y est réduite
+  (27 % de la zone utile au lieu de 31-32 %) et descend de 26 px.
 - **Clic** : les skills apparaissent **en surimpression sur le fond**, sans fenêtre, à droite de la
   lune et reliées à elle. Le reste de la scène s'estompe. Un clic ailleurs ou Échap referme. Un clic
   sur une skill ouvre sa fenêtre (`web/src/SkillPanel.tsx`), qui sort de la skill choisie.

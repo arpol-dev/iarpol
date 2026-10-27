@@ -17,6 +17,12 @@ const OUTCOME_LABEL: Record<string, string> = { succeeded: 'réussi', failed: '�
 const CONFIRM_MS = 3000
 /** Durée de l'effet d'envol quand la session s'ouvre dans OpenCode (theme.css : depart). */
 const DEPART_MS = 550
+/**
+ * Écran tactile : Entrée va à la ligne, comme dans toutes les messageries mobiles, et seul le bouton
+ * envoie. Au clavier physique, Entrée envoie et Maj+Entrée va à la ligne.
+ */
+const touchScreen = () => matchMedia('(pointer: coarse)').matches
+
 /** Délai sans frappe avant d'enregistrer le brouillon. */
 const DRAFT_SAVE_MS = 600
 /** Distance au bas du fil en dessous de laquelle on suit les nouveaux messages. */
@@ -466,8 +472,9 @@ export function SessionPanel({
                 rows={1}
                 placeholder="Écrire à la session…"
                 onChange={(e) => editDraft(e.target.value)}
+                enterKeyHint={touchScreen() ? 'enter' : 'send'}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
+                  if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing && !touchScreen()) {
                     e.preventDefault()
                     send()
                   }

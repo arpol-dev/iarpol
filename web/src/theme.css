@@ -352,6 +352,10 @@ svg.net, .particles { transition: opacity 0.45s; }
   transition: background-color 0.25s;
 }
 @keyframes skill-in { from { opacity: 0; transform: translateX(-14px); } }
+/* Téléphone : sous la rangée des lunes, les skills descendent au lieu de glisser. */
+.skill-list.below { transform: none; overflow-y: auto; }
+.skill-list.below .skill-line { animation-name: skill-down; }
+@keyframes skill-down { from { opacity: 0; transform: translateY(-10px); } }
 .skill-line::before {
   content: ''; position: absolute; left: 0.1em; top: 0.95em; width: 5px; height: 5px; border-radius: 50%;
   background: rgba(156, 200, 255, 0.45); transition: background-color 0.25s, box-shadow 0.25s;

@@ -20,10 +20,16 @@ export interface Layout {
   orbit: { rx: number; ry: number }
   /** Zone utile (écran moins les bandes réservées). */
   area: { left: number; top: number; right: number; bottom: number }
+  /** Écran étroit (téléphone) : orbite des sessions réduite, lunes des plugins en haut. */
+  narrow: boolean
   nodes: Placed[]
 }
 
 const SINGLE_RING_MAX = 10
+/** En dessous de cette largeur utile (téléphone), disposition étroite. */
+export const NARROW_WIDTH = 600
+/** Décalage vers le bas du réseau sur un écran étroit, pour laisser la rangée des lunes en haut. */
+const NARROW_SHIFT = 26
 const SATELLITE_DISTANCE = 62
 const SATELLITE_SPREAD = (35 * Math.PI) / 180
 const ORBIT_GAP = 40
@@ -56,15 +62,17 @@ export function hubScale({ rx, ry }: Layout, ui: number): number {
 /**
  * Dispose les sessions sur une ellipse autour du centre de la zone utile (écran moins les bandes
  * réservées, ex. barre des tâches), deux anneaux au-delà de dix sessions, les plus récentes en
- * premier, et les sous-agents en satellites de leur parent.
+ * premier, et les sous-agents en satellites de leur parent. Sur un écran étroit, l'ellipse est plus
+ * petite et descend un peu, sous la rangée des lunes des plugins.
  */
 export function layout(sessions: Session[], width: number, height: number, insets = NO_INSETS, scale = 1): Layout {
   const usableWidth = width - insets.left - insets.right
   const usableHeight = height - insets.top - insets.bottom
+  const narrow = usableWidth < NARROW_WIDTH
   const cx = insets.left + usableWidth / 2
-  const cy = insets.top + usableHeight / 2
-  const rx = usableWidth * 0.31
-  const ry = usableHeight * 0.32
+  const cy = insets.top + usableHeight / 2 + (narrow ? NARROW_SHIFT : 0)
+  const rx = usableWidth * (narrow ? 0.27 : 0.31)
+  const ry = usableHeight * (narrow ? 0.27 : 0.32)
 
   const ids = new Set(sessions.map((s) => s.id))
   const roots = sessions
@@ -124,7 +132,7 @@ export function layout(sessions: Session[], width: number, height: number, inset
   const orbit = { rx: (rx + ORBIT_GAP) * k, ry: (ry + ORBIT_GAP) * k }
 
   const area = { left: insets.left, top: insets.top, right: width - insets.right, bottom: height - insets.bottom }
-  return { cx, cy, rx, ry, orbit, area, nodes }
+  return { cx, cy, rx, ry, orbit, area, narrow, nodes }
 }
 
 export interface Moon {
@@ -138,8 +146,13 @@ export interface Moon {
 export interface MoonOrbit {
   rx: number
   ry: number
-  /** Noms à gauche des lunes s'il y a la place, sinon dessous (téléphone). */
-  labels: 'side' | 'below'
+  /**
+   * Place des noms : à gauche des lunes (`side`), dessous si la place manque (`below`), ou, pour la
+   * rangée du haut d'un téléphone, alternativement dessous et dessus (`alternate`).
+   */
+  labels: 'side' | 'below' | 'alternate'
+  /** Lunes en rangée en haut de l'écran (téléphone) plutôt que sur l'arc gauche. */
+  top: boolean
   moons: Moon[]
 }
 
@@ -149,6 +162,10 @@ const MOON_MARGIN = 26
 /** Largeur moyenne d'un caractère des noms (Cinzel 11 px, espacé), pour réserver leur place. */
 const LABEL_CHAR = 8
 const LABEL_GAP = 12
+/** Rangée du haut (téléphone) : hauteur sous la marque, marge latérale, courbure de la rangée. */
+const ROW_Y = 92
+const ROW_EDGE = 46
+const ROW_SAG = 14
 
 /** Largeur réservée au nom d'un plugin, en px. */
 export function labelWidth(label: string, ui = 1): number {
@@ -163,6 +180,7 @@ export function labelWidth(label: string, ui = 1): number {
  */
 export function moonOrbit(layout: Layout, items: { skills: number; label: string }[], ui = 1): MoonOrbit {
   const { cx, cy, rx, ry, area } = layout
+  if (layout.narrow) return moonRow(layout, items, ui)
   const radius = (n: number) => (10 + 2.6 * Math.sqrt(Math.max(1, n))) * ui
   const biggest = Math.max(0, ...items.map((p) => radius(p.skills)))
   const widest = Math.max(0, ...items.map((p) => labelWidth(p.label, ui)))
@@ -187,7 +205,28 @@ export function moonOrbit(layout: Layout, items: { skills: number; label: string
       r: radius(n),
     }
   })
-  return { rx: orbitRx, ry: orbitRy, labels, moons }
+  return { rx: orbitRx, ry: orbitRy, labels, top: false, moons }
+}
+
+/**
+ * Téléphone : lunes en rangée en haut de l'écran, sous la marque, légèrement incurvée (le milieu
+ * plus haut, comme un arc d'orbite). Les noms alternent dessous et dessus pour ne pas se chevaucher.
+ */
+function moonRow(layout: Layout, items: { skills: number; label: string }[], ui: number): MoonOrbit {
+  const { area } = layout
+  const radius = (n: number) => (8 + 2 * Math.sqrt(Math.max(1, n))) * ui
+  const left = area.left + ROW_EDGE
+  const width = area.right - ROW_EDGE - left
+  const moons = items.map((p, i) => {
+    const t = items.length > 1 ? (i / (items.length - 1)) * 2 - 1 : 0
+    return {
+      angle: -Math.PI / 2,
+      x: items.length > 1 ? left + ((t + 1) / 2) * width : (area.left + area.right) / 2,
+      y: area.top + ROW_Y + ROW_SAG * t * t,
+      r: radius(p.skills),
+    }
+  })
+  return { rx: 0, ry: 0, labels: 'alternate', top: true, moons }
 }
 
 /**
