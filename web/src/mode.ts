@@ -58,3 +58,20 @@ export function readInsets(): Insets {
     bottom: param('bottom') ?? auto.bottom,
   }
 }
+
+/**
+ * Fond d'écran sur plusieurs écrans : Hidamari charge la même adresse dans une fenêtre par écran.
+ * Le lanceur y ajoute la zone de l'écran principal (`&primary=x,y,largeur,hauteur`, en pixels du
+ * bureau, lue dans GNOME). Une fenêtre dont le centre est hors de cette zone est sur un écran
+ * secondaire : elle n'affiche que le logo. `?logo` force ce mode.
+ */
+export function onSecondaryScreen(): boolean {
+  if (params.has('logo')) return true
+  const spec = params.get('primary')
+  if (!WALLPAPER || !spec) return false
+  const [x, y, w, h] = spec.split(',').map(Number)
+  if (![x, y, w, h].every(Number.isFinite) || w <= 0 || h <= 0) return false
+  const mx = window.screenX + innerWidth / 2
+  const my = window.screenY + innerHeight / 2
+  return !(mx >= x && mx < x + w && my >= y && my < y + h)
+}

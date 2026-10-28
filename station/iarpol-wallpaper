@@ -14,13 +14,50 @@ for i in $(seq 1 120); do
   sleep 5
 done
 
+# Plusieurs écrans : Hidamari charge la même adresse sur chacun (mode page web). On y ajoute la zone
+# de l'écran principal (&primary=x,y,largeur,hauteur, lue dans GNOME) : la page affiche l'interface
+# sur l'écran principal et seulement le logo sur les autres. Sans réponse de GNOME, pas de zone :
+# l'interface complète partout, comme avant.
 python3 - "$URL" <<'PY'
 import json, os, sys
+
+url = sys.argv[1]
+try:
+    import gi
+    gi.require_version("Gio", "2.0")
+    from gi.repository import Gio, GLib
+
+    bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+    state = bus.call_sync("org.gnome.Mutter.DisplayConfig", "/org/gnome/Mutter/DisplayConfig",
+                          "org.gnome.Mutter.DisplayConfig", "GetCurrentState", None, None,
+                          Gio.DBusCallFlags.NONE, 3000, None).unpack()
+    _, monitors, logical, props = state
+    # Taille de chaque écran physique : son mode courant.
+    sizes = {}
+    for (connector, *_), modes, _ in monitors:
+        for _, w, h, *_rest, mode_props in modes:
+            if mode_props.get("is-current"):
+                sizes[connector] = (w, h)
+    physical = props.get("layout-mode") == 2
+    for x, y, scale, transform, primary, members, _ in logical:
+        if not primary or not members:
+            continue
+        w, h = sizes.get(members[0][0], (0, 0))
+        if transform in (1, 3, 5, 7):  # rotation de 90° ou 270°
+            w, h = h, w
+        if not physical:
+            w, h = round(w / scale), round(h / scale)
+        if w and h:
+            url += f"&primary={x},{y},{w},{h}"
+except Exception as e:  # GNOME injoignable : on garde l'interface partout
+    print(f"iarpol-wallpaper: écran principal inconnu ({e})", file=sys.stderr)
+
 p = os.path.expanduser("~/.var/app/io.github.jeffshee.Hidamari/config/hidamari/config.json")
 c = json.load(open(p))
 for k in c["data_source"]:
-    c["data_source"][k] = sys.argv[1]
+    c["data_source"][k] = url
 json.dump(c, open(p, "w"), indent=3)
+print(url)
 PY
 
 # Une seule instance : « flatpak kill <appli> » n'en arrête qu'une, on les arrête une par une.

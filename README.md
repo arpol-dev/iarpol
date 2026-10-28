@@ -117,8 +117,9 @@ root ; installés le 2026-10-25.
 - `iarpol-wallpaper` : lanceur du fond d'écran.
   - Il est lancé par `~/.config/autostart/iarpol-wallpaper.desktop` à l'ouverture de session.
   - Il attend que le VPN soit monté, choisit `fps=60` (mode PRIME nvidia) ou `fps=6` (on-demand),
-    écrit l'URL dans la configuration de Hidamari, arrête les instances existantes, puis lance
-    Hidamari sans compositing accéléré.
+    ajoute la zone de l'écran principal (cf. « Plusieurs écrans »), écrit l'URL dans la
+    configuration de Hidamari, arrête les instances existantes, puis lance Hidamari sans
+    compositing accéléré.
 - `iarpol-open` et son unit : service d'ouverture des sessions dans OpenCode (voir plus haut).
 - `iarpol-wallpaper-watch` et son unit : **relance le fond d'écran quand les écrans changent**
   (signal `MonitorsChanged` de GNOME, regroupé sur 5 s). Pourquoi : quand un écran disparaît (capot
@@ -240,6 +241,18 @@ Mode utilisé par Hidamari sur ArPol-Station (`https://iarpol.arpol.fr/?wallpape
 
   L'état est mémorisé (`localStorage`), donc une pause survit au redémarrage. Il ne s'applique qu'au
   mode fond d'écran.
+- **Plusieurs écrans** : l'interface ne s'affiche que sur l'écran principal ; les autres montrent
+  seulement le cœur (logo, lueur, anneaux), fixe, sans flux de données ni animation.
+  - Pourquoi côté page : en mode page web, Hidamari charge la même adresse dans une fenêtre par
+    écran (`data_source["Default"]`, `player/web_player.py`) ; seul son mode vidéo gère une source
+    par écran.
+  - Le lanceur lit l'écran principal dans GNOME (`org.gnome.Mutter.DisplayConfig.GetCurrentState`)
+    et ajoute sa zone à l'adresse : `&primary=x,y,largeur,hauteur`. Chaque fenêtre compare son
+    centre (`screenX`/`screenY`, exacts sous X11 dans WebKitGTK) à cette zone
+    (`mode.ts`, `onSecondaryScreen`). Sans réponse de GNOME : l'interface partout, comme avant.
+  - `?logo` force l'affichage du logo seul. En fond d'écran, `/api/me` reçoit aussi
+    `&s=x,y,LxH` : les journaux de nginx disent sur quel écran tourne chaque fenêtre.
+  - Un changement d'écrans relance le fond d'écran (`iarpol-wallpaper-watch`), donc la zone suit.
 - **Pas de service worker** : il n'est pas enregistré, et un éventuel ancien est retiré, sinon
   Hidamari afficherait l'ancienne version après chaque déploiement.
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { paintBackdrop } from './backdrop'
 import { hubScale, layout } from './layout'
-import { readInsets, WALLPAPER, WALLPAPER_LOW_FPS, WALLPAPER_NATIVE, type Insets } from './mode'
+import { onSecondaryScreen, readInsets, WALLPAPER, WALLPAPER_LOW_FPS, WALLPAPER_NATIVE, type Insets } from './mode'
 import { Network } from './Network'
 import { PluginMoons } from './PluginMoons'
 import { SessionPanel } from './SessionPanel'
@@ -83,7 +83,54 @@ function uiScale(width: number, height: number, insets: Insets): number {
   return Math.max(1, Math.min(1.5, usableWidth / 1600, usableHeight / 900))
 }
 
+/**
+ * Écran secondaire du fond d'écran : seulement le cœur (lueur, anneaux, logo), fixe. Ni flux de
+ * données, ni animation : la fenêtre ne coûte presque rien une fois dessinée.
+ */
+function LogoOnly() {
+  const { width, height } = useViewport()
+  const cx = width / 2
+  const cy = height / 2
+  const k = Math.max(0.7, Math.min(1.3, Math.min(width / 1600, height / 900)))
+  return (
+    <>
+      <Backdrop width={width} height={height} cx={cx} cy={cy} glow={460 * k} factor={0.85} />
+      <svg className="net logo-only" viewBox={`0 0 ${width} ${height}`} aria-label="IArPol">
+        <defs>
+          <linearGradient id="gRing" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#2672C9" />
+            <stop offset=".55" stopColor="#00D4FF" />
+            <stop offset="1" stopColor="#F0B840" />
+          </linearGradient>
+        </defs>
+        <circle cx={cx} cy={cy} r={124 * k} fill="none" stroke="url(#gRing)" strokeOpacity=".28" strokeWidth="1" strokeDasharray={`${46 * k} ${16 * k}`} />
+        <circle cx={cx} cy={cy} r={88 * k} fill="none" stroke="rgba(38,114,201,0.25)" strokeWidth="1" />
+        <image className="core" href="/logo.png" x={cx - 48 * k} y={cy - 48 * k} width={96 * k} height={96 * k} />
+      </svg>
+    </>
+  )
+}
+
+/**
+ * Écran principal : toute l'interface. Écran secondaire du fond d'écran (cf. `onSecondaryScreen`) :
+ * le logo seul. Revérifié quand la fenêtre bouge de taille et peu après le chargement, au cas où
+ * Hidamari ne l'aurait pas encore placée sur son écran.
+ */
 export default function App() {
+  const [secondary, setSecondary] = useState(onSecondaryScreen)
+  useEffect(() => {
+    const check = () => setSecondary(onSecondaryScreen())
+    const timers = [500, 2000, 5000].map((ms) => setTimeout(check, ms))
+    addEventListener('resize', check)
+    return () => {
+      timers.forEach(clearTimeout)
+      removeEventListener('resize', check)
+    }
+  }, [])
+  return secondary ? <LogoOnly /> : <Interface />
+}
+
+function Interface() {
   const { width, height } = useViewport()
   // La pause n'existe qu'en fond d'écran : une pause mémorisée ne doit pas figer le mode normal.
   const [storedPaused, togglePaused] = usePaused()

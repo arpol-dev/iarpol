@@ -1,3 +1,4 @@
+import { WALLPAPER } from './mode'
 import type { PluginInfo, SessionDetail, SkillDetail } from './types'
 
 export class ApiError extends Error {
@@ -30,7 +31,12 @@ export const BUILD = import.meta.env.DEV ? null : (new URL(import.meta.url).path
  * Cet appareil peut-il lire les échanges et agir sur les sessions ? (liste blanche côté serveur) ;
  * `build` : version à jour de l'interface côté serveur.
  */
-export const getMe = () => call<{ trusted: boolean; build: string | null }>('GET', `/api/me?b=${BUILD ?? 'dev'}`)
+/**
+ * En fond d'écran, la position et la taille de la fenêtre accompagnent la version (`&s=x,y,LxH`) :
+ * les journaux de nginx disent alors sur quel écran tourne chaque fenêtre de Hidamari.
+ */
+const where = () => (WALLPAPER ? `&s=${screenX},${screenY},${innerWidth}x${innerHeight}` : '')
+export const getMe = () => call<{ trusted: boolean; build: string | null }>('GET', `/api/me?b=${BUILD ?? 'dev'}${where()}`)
 export const getSessionDetail = (id: string) => call<SessionDetail>('GET', `/api/sessions/${id}`)
 export const sendMessage = (id: string, text: string) => call<{ ok: true }>('POST', `/api/sessions/${id}/prompt`, { text })
 export const finishSession = (id: string) => call<{ ok: true }>('POST', `/api/sessions/${id}/finish`)
