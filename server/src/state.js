@@ -42,7 +42,14 @@ async function buildSnapshot() {
   ]);
   const activeIds = new Set(Object.keys(active.body.data ?? {}));
   const horizon = Date.now() - WINDOW_DAYS * 86_400_000;
-  const all = list.body.data;
+  // Une session archivée reste utilisable dans OpenCode : si elle travaille, elle doit apparaître.
+  const listed = new Set(list.body.data.map((s) => s.id));
+  const revived = await Promise.all(
+    [...activeIds]
+      .filter((id) => !listed.has(id))
+      .map((id) => ocGet(`/api/session/${id}`).then((r) => r.body.data, () => null)),
+  );
+  const all = [...list.body.data, ...revived.filter(Boolean)];
 
   // Racines : récentes, ou en cours quel que soit leur âge. Sous-sessions (sous-agents) : seulement
   // celles qui travaillent, affichées comme satellites de leur parent.

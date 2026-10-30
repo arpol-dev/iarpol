@@ -15,6 +15,9 @@ donne son état :
 Les sous-agents qui travaillent apparaissent en petits satellites de leur session parente. Un
 sous-agent bloqué sur une permission fait passer son parent en `needs`.
 
+Sessions affichées : les non archivées actives depuis moins de 7 jours, plus toute session qui
+travaille, même archivée (OpenCode laisse continuer une session archivée : elle disparaissait).
+
 Le nom des sessions n'est pas affiché sur le réseau (ni étiquette, ni infobulle) : il n'apparaît que
 dans la fenêtre de la session.
 
