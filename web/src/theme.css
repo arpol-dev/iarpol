@@ -141,7 +141,7 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
    marge ferme la fenêtre. */
 .overlay {
   --m: clamp(24px, 6vmin, 110px);
-  --panel-scale: min(var(--ui-scale, 1), 1.25);
+  --panel-scale: min(var(--ui-scale, 1), 1.1);
   position: fixed; inset: 0; z-index: 10;
   display: flex; justify-content: center;
   padding: calc(var(--inset-top, 0px) + var(--m)) calc(var(--inset-right, 0px) + var(--m))
@@ -164,7 +164,7 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 .panel {
   position: relative; width: 100%; max-width: calc(1040px * var(--panel-scale)); height: 100%;
   display: flex; flex-direction: column; overflow: hidden;
-  font-size: calc(15px * var(--panel-scale));
+  font-size: calc(13.5px * var(--panel-scale));
   /* Assez opaque pour rester lisible même sans flou d'arrière-plan (moteur de Hidamari sans
      compositing accéléré), assez transparent pour laisser deviner le réseau derrière. */
   background: rgba(10, 20, 40, 0.8);
@@ -195,32 +195,32 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 .panel-head {
   display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1em 1.5em;
   /* À droite, la place de la croix de fermeture (coin supérieur droit de la fenêtre). */
-  padding: 1.4em 4.2em 1.1em 1.8em; border-bottom: 1px solid rgba(38, 114, 201, 0.18);
+  padding: 1em 3.6em 0.85em 1.5em; border-bottom: 1px solid rgba(38, 114, 201, 0.18);
 }
 .panel-title { flex: 1; min-width: 14em; }
 .panel-title h2 {
-  font-family: 'Cinzel', serif; font-weight: 600; font-size: 1.35em; letter-spacing: 0.03em;
+  font-family: 'Cinzel', serif; font-weight: 600; font-size: 1.12em; letter-spacing: 0.03em;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.panel-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4em 1.1em; margin-top: 0.55em; font-size: 0.82em; color: var(--dim); }
+.panel-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 0.35em 1em; margin-top: 0.4em; font-size: 0.8em; color: var(--dim); }
 .chip { display: inline-flex; align-items: center; gap: 0.45em; padding: 0.12em 0.7em; border: 1px solid currentColor; border-radius: 999px; }
 .chip::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
 .chip.running { color: var(--cyan); }
 .chip.needs, .chip.unread { color: var(--gold-lt); }
 .chip.rest, .chip.archived { color: rgba(232, 244, 253, 0.5); }
 .chip.error { color: var(--error); }
-.panel-actions { display: flex; align-items: center; gap: 0.7em; }
+.panel-actions { display: flex; align-items: center; gap: 0.5em; }
 .cta-open {
-  padding: 0.55em 1.3em; border: 0; border-radius: 8px; cursor: pointer;
-  font-family: 'Cinzel', serif; font-weight: 600; font-size: 0.9em; letter-spacing: 0.05em;
+  padding: 0.4em 0.95em; border: 0; border-radius: 7px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-weight: 600; font-size: 0.8em; letter-spacing: 0.05em;
   color: #fff; background: linear-gradient(135deg, var(--blue), var(--cyan));
   box-shadow: 0 4px 18px rgba(38, 114, 201, 0.35); transition: filter 0.2s;
 }
 .cta-open:hover:not(:disabled) { filter: brightness(1.1); }
 .cta-open:disabled { opacity: 0.35; cursor: default; }
 .cta-finish {
-  padding: 0.55em 1.3em; border: 0; border-radius: 8px; cursor: pointer;
-  font-family: 'Cinzel', serif; font-weight: 600; font-size: 0.9em; letter-spacing: 0.05em;
+  padding: 0.4em 0.95em; border: 0; border-radius: 7px; cursor: pointer;
+  font-family: 'Cinzel', serif; font-weight: 600; font-size: 0.8em; letter-spacing: 0.05em;
   color: #0a0e1a; background: linear-gradient(135deg, var(--gold), var(--gold-lt));
   box-shadow: 0 4px 18px rgba(200, 148, 26, 0.25); transition: filter 0.2s, box-shadow 0.2s;
 }
@@ -229,12 +229,12 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 .cta-finish:disabled { opacity: 0.35; cursor: default; }
 .close {
   position: absolute; top: 0.9em; right: 0.9em; z-index: 1;
-  width: 2.1em; height: 2.1em; border: 1px solid rgba(232, 244, 253, 0.18); border-radius: 50%;
-  background: transparent; color: var(--dim); font-size: 1.1em; line-height: 1; cursor: pointer;
+  width: 1.9em; height: 1.9em; border: 1px solid rgba(232, 244, 253, 0.18); border-radius: 50%;
+  background: transparent; color: var(--dim); font-size: 1em; line-height: 1; cursor: pointer;
 }
 .close:hover { color: var(--text); border-color: rgba(0, 212, 255, 0.45); }
 .banner {
-  margin: 0.8em 1.8em 0; padding: 0.55em 0.9em; border-radius: 8px; font-size: 0.85em;
+  margin: 0.7em 1.5em 0; padding: 0.5em 0.85em; border-radius: 8px; font-size: 0.85em;
   color: var(--gold-lt); background: rgba(200, 148, 26, 0.1); border: 1px solid rgba(240, 184, 64, 0.3);
 }
 .banner.error { color: #f6b8be; background: rgba(255, 93, 108, 0.1); border-color: rgba(255, 93, 108, 0.38); }
@@ -258,7 +258,7 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 .retry-line { font-size: 0.78em; color: rgba(240, 184, 64, 0.8); font-style: italic; }
 
 .thread {
-  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 1.1em; padding: 1.4em 1.8em;
+  flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.9em; padding: 1.1em 1.5em;
   user-select: text; scrollbar-width: thin; scrollbar-color: rgba(38, 114, 201, 0.4) transparent;
 }
 .thread-note { margin: auto 0; text-align: center; color: var(--dim); font-size: 0.9em; }
@@ -266,7 +266,7 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 .msg-time { margin-top: 0.35em; font-size: 0.72em; color: rgba(232, 244, 253, 0.32); }
 .msg.user { align-items: flex-end; }
 .msg.user .bubble {
-  max-width: 75%; padding: 0.7em 1em; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
+  max-width: 75%; padding: 0.55em 0.9em; line-height: 1.5; white-space: pre-wrap; word-break: break-word;
   border-radius: 14px 14px 4px 14px; background: rgba(38, 114, 201, 0.24); border: 1px solid rgba(38, 114, 201, 0.4);
 }
 .msg.assistant { gap: 0.5em; }
@@ -290,16 +290,16 @@ svg.net.dormant .ring-a, svg.net.dormant .ring-b { animation-play-state: paused;
 
 .composer {
   display: flex; flex-wrap: wrap; align-items: flex-end; gap: 0.7em;
-  padding: 1em 1.8em 1.3em; border-top: 1px solid rgba(38, 114, 201, 0.18);
+  padding: 0.8em 1.5em 1em; border-top: 1px solid rgba(38, 114, 201, 0.18);
 }
 .composer textarea {
-  flex: 1; min-width: 0; max-height: 12em; resize: none; padding: 0.7em 1em; line-height: 1.5;
+  flex: 1; min-width: 0; max-height: 12em; resize: none; padding: 0.55em 0.9em; line-height: 1.5;
   border: 1px solid rgba(38, 114, 201, 0.35); border-radius: 12px; outline: none;
   background: rgba(6, 12, 26, 0.6); color: var(--text); font: inherit; user-select: text;
 }
 .composer textarea:focus { border-color: rgba(0, 212, 255, 0.6); box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.12); }
 .send {
-  flex: none; display: grid; place-items: center; width: 2.6em; height: 2.6em; border: 0; border-radius: 50%; cursor: pointer;
+  flex: none; display: grid; place-items: center; width: 2.3em; height: 2.3em; border: 0; border-radius: 50%; cursor: pointer;
   color: #fff; background: linear-gradient(135deg, var(--blue), var(--cyan)); box-shadow: 0 4px 16px rgba(38, 114, 201, 0.35);
 }
 .send svg { width: 45%; height: 45%; fill: currentColor; }
@@ -384,22 +384,22 @@ svg.net, .particles { transition: opacity 0.45s; }
 .panel-meta .path { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 0.92em; overflow-wrap: anywhere; }
 .segmented { display: inline-flex; padding: 3px; border-radius: 9px; background: rgba(6, 12, 26, 0.6); border: 1px solid rgba(38, 114, 201, 0.3); }
 .segmented button {
-  padding: 0.45em 1em; border: 0; border-radius: 6px; background: none; cursor: pointer;
-  color: var(--dim); font-family: 'Cinzel', serif; font-weight: 600; font-size: 0.85em; letter-spacing: 0.05em;
+  padding: 0.35em 0.85em; border: 0; border-radius: 6px; background: none; cursor: pointer;
+  color: var(--dim); font-family: 'Cinzel', serif; font-weight: 600; font-size: 0.78em; letter-spacing: 0.05em;
   transition: color 0.2s, background-color 0.2s, box-shadow 0.2s;
 }
 .segmented button:hover:not(:disabled) { color: var(--text); }
 .segmented button.on { color: #fff; background: rgba(38, 114, 201, 0.45); box-shadow: inset 0 0 0 1px rgba(0, 212, 255, 0.35); }
 .segmented button:disabled { opacity: 0.4; cursor: default; }
 .skill-body {
-  flex: 1; overflow-y: auto; padding: 1.4em 1.8em 2em; user-select: text;
+  flex: 1; overflow-y: auto; padding: 1.1em 1.5em 1.6em; user-select: text;
   scrollbar-width: thin; scrollbar-color: rgba(38, 114, 201, 0.4) transparent;
 }
 .skill-lead {
   margin-bottom: 1.1em; padding: 0.8em 1em; border-left: 2px solid var(--cyan); border-radius: 0 8px 8px 0;
   background: rgba(0, 212, 255, 0.05); color: rgba(232, 244, 253, 0.75); font-style: italic; line-height: 1.55;
 }
-.skill-editor { flex: 1; min-height: 0; display: flex; padding: 1em 1.8em 1.4em; }
+.skill-editor { flex: 1; min-height: 0; display: flex; padding: 0.8em 1.5em 1.1em; }
 .skill-editor textarea {
   flex: 1; min-height: 0; resize: none; padding: 1em 1.2em; outline: none; user-select: text;
   border: 1px solid rgba(38, 114, 201, 0.35); border-radius: 12px; background: rgba(4, 9, 20, 0.7);

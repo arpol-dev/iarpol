@@ -55,8 +55,9 @@ son neurone** (point lumineux qui s'en détache puis se déploie, `web/src/emerg
 et y retourne à la fermeture.
 
 - **Apparence** : verre bleu nuit translucide, sans barre de titre. La marge reste significative tout
-  autour (zone réservée comprise), avec une largeur maximale de 1040 px (×1,25 au plus sur grand
-  écran). On ferme par un clic dans la marge, la croix ou Échap.
+  autour (zone réservée comprise), avec une largeur maximale de 1040 px (×1,1 au plus sur grand
+  écran). Texte de base 13,5 px (×1,1 au plus), boutons compacts. On ferme par un clic dans la
+  marge, la croix ou Échap.
 - **En-tête** :
   - titre, statut, dossier, agent et modèle, dernière activité, jetons ;
   - bouton **Ouvrir** : la session dans OpenCode, puis la fenêtre IArPol « s'envole » (liseré cyan,
