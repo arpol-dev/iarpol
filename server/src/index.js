@@ -7,6 +7,8 @@ import { getDraft, setDraft } from './drafts.js';
 import { finishSession, markViewed, sendPrompt, sessionDetail, SESSION_ID_RE } from './sessions.js';
 import { listPlugins, saveSkill, skillDetail, SKILL_ID_RE, SKILL_MAX } from './skills.js';
 import { getSnapshot, subscribe } from './state.js';
+import { ensureWebhookConfig, webhookRoute } from './webhook.js';
+import { openRoute } from './openpage.js';
 
 const SSE_HEARTBEAT_MS = 25_000;
 const MAX_BODY = 64 * 1024;
@@ -170,6 +172,8 @@ async function serveStatic(req, res) {
 const server = createServer(async (req, res) => {
   try {
     const { pathname } = new URL(req.url, 'http://x');
+    if (pathname.startsWith('/api/webhook/') && (await webhookRoute(req, res, pathname))) return;
+    if (pathname.startsWith('/open/') && (await openRoute(req, res, pathname))) return;
     const session = pathname.match(SESSION_ROUTE);
     if (session) return await sessionRoute(req, res, session[1], session[2]);
     const skill = pathname.match(SKILL_ROUTE);
@@ -192,4 +196,7 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, HOST, () => console.log(`IArPol en écoute sur http://${HOST}:${PORT}`));
+server.listen(PORT, HOST, () => {
+  console.log(`IArPol en écoute sur http://${HOST}:${PORT}`);
+  ensureWebhookConfig();
+});
