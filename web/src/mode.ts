@@ -43,15 +43,17 @@ export function readInsets(): Insets {
   const s = screen as Screen & { availLeft?: number; availTop?: number }
   const availLeft = s.availLeft ?? 0
   const availTop = s.availTop ?? 0
-  // `screen.width` couvre tout le bureau sur plusieurs écrans alors que `avail*` peut ne décrire que
-  // l'écran courant : sans concordance avec la fenêtre, la différence ferait une marge d'un écran entier.
-  const windowIsScreen = Math.abs(s.width - innerWidth) <= 2 && Math.abs(s.height - innerHeight) <= 2
+  // `avail*` sont des coordonnées du bureau entier, pas de la fenêtre : sur un écran décalé (écran
+  // principal en dessous d'un autre), availTop vaut sa position et non une barre. Les marges se
+  // comptent donc depuis la position de la fenêtre, et seulement là où la zone de travail la déborde.
+  const x = screenX
+  const y = screenY
   const auto = WALLPAPER
     ? {
-        left: availLeft,
-        top: availTop,
-        right: windowIsScreen ? Math.max(0, s.width - availLeft - s.availWidth) : 0,
-        bottom: windowIsScreen ? Math.max(0, s.height - availTop - s.availHeight) : 0,
+        left: Math.max(0, availLeft - x),
+        top: Math.max(0, availTop - y),
+        right: Math.max(0, x + innerWidth - (availLeft + s.availWidth)),
+        bottom: Math.max(0, y + innerHeight - (availTop + s.availHeight)),
       }
     : { left: 0, top: 0, right: 0, bottom: 0 }
   return {
